@@ -6,6 +6,10 @@
 **/docker-compose.override.yml
 docker-compose.override.yml
 
+# TLS material (Caddy local CA cert is host-specific; private keys never)
+*.crt
+*.key
+
 # macOS
 .DS_Store
 

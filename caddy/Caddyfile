@@ -4,7 +4,7 @@
 	# admin API is bound to 127.0.0.1:2019 inside the container by default.
 }
 
-spark-1822.local {
+{$CADDY_DOMAIN} {
 	tls internal
 
 	encode zstd gzip

@@ -39,6 +39,8 @@ HTTPS reverse proxy in front of every app on this host. Issues certificates from
 ```bash
 cd /opt/caddy
 cp .env.example .env
+# Edit .env — set CADDY_DOMAIN to the hostname this box answers to
+# (e.g., spark-1822.local for mDNS, or your own DNS name).
 docker compose up -d
 docker compose ps
 ```
@@ -54,12 +56,12 @@ docker exec caddy cat /data/caddy/pki/authorities/local/root.crt > ~/caddy-root.
 #   Linux:   sudo cp caddy-root.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
 ```
 
-After trust is established, browse to `https://spark-1822.local`.
+After trust is established, browse to `https://${CADDY_DOMAIN}`.
 
-To add a new app to Caddy, add a site block to `Caddyfile`:
+The hostname is parameterized via the `CADDY_DOMAIN` env var (set in `caddy/.env`), so the same Caddyfile works on any host. To add a new app, add a site block to `Caddyfile`:
 
 ```
-myapp.spark-1822.local {
+myapp.{$CADDY_DOMAIN} {
     tls internal
     reverse_proxy myapp:8080
 }
@@ -84,7 +86,7 @@ docker compose up -d
 docker compose ps
 ```
 
-Open WebUI is then reachable at `https://spark-1822.local` (through Caddy). The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
+Open WebUI is then reachable at `https://${CADDY_DOMAIN}` (through Caddy). The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
 
 ### Pull models
 

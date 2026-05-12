@@ -5,6 +5,8 @@ services:
     image: caddy:${CADDY_TAG:?CADDY_TAG must be set in .env}
     container_name: caddy
     restart: unless-stopped
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?CADDY_DOMAIN must be set in .env}
     networks:
       - web
     ports:
