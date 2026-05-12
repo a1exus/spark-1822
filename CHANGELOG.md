@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- `open-webui/README.md` and `.github/README.md` so each component documents itself.
+
 ### Changed
 
+- Slim top-level `README.md` to an overview + per-component links; per-stack details now live in each directory's `README.md`.
 - Split `caddy/Caddyfile` into per-service files under `caddy/Caddyfile.d/<name>.caddyfile`, loaded via `import`. Adding a new app is now a single file drop + reload.
 
 ### Removed
