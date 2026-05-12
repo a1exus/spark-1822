@@ -1,0 +1,122 @@
+# caddy
+
+HTTPS reverse proxy for every other app on this host. Terminates TLS using [Caddy](https://caddyserver.com)'s internal CA (`tls internal`) and forwards traffic to the right service over the shared `web` Docker network.
+
+Caddy is the only stack that publishes host ports (`80`, `443`, plus `443/udp` for HTTP/3). Every other service is unreachable from the LAN except through it.
+
+## Files
+
+```
+caddy/
+├── docker-compose.yml   # caddy service definition, joins external `web` network
+├── Caddyfile            # site/route config (uses {$CADDY_DOMAIN})
+├── .env.example         # committed; copy to .env and customize
+└── .env                 # not committed (gitignored)
+```
+
+## Configure
+
+```bash
+cp .env.example .env
+# Edit .env:
+#   CADDY_TAG     — Caddy image tag (e.g. 2.11.2-alpine)
+#   CADDY_DOMAIN  — hostname this Caddy answers to (must resolve to this host)
+```
+
+`CADDY_DOMAIN` is referenced in the Caddyfile as `{$CADDY_DOMAIN}`, so the same config works on any host without edits.
+
+## Deploy
+
+Prereq: the shared `web` network must exist (one-time, on the host):
+
+```bash
+docker network create web
+```
+
+Then:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+## Trust the root CA
+
+`tls internal` means Caddy signs leaf certificates with its own private root. Browsers won't trust it until you install that root on each client.
+
+Extract the root:
+
+```bash
+docker exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
+```
+
+Install it:
+
+| Platform | Command / steps |
+|---|---|
+| macOS | Open `caddy-root.crt` → Keychain Access → System keychain → set the cert to "Always Trust". |
+| iOS | AirDrop or email `caddy-root.crt` → Install profile → Settings → General → About → Certificate Trust Settings → enable full trust. |
+| Linux (Debian/Ubuntu) | `sudo cp caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt && sudo update-ca-certificates` |
+| Firefox (any OS) | Firefox doesn't use the system store. Settings → Privacy & Security → Certificates → View Certificates → Authorities → Import. |
+
+The root certificate is host-specific (gitignored as `*.crt`) and rotates only if the `caddy-data` volume is destroyed.
+
+## Add a new app
+
+1. Run the new app's stack with a service on the `web` network (no host port publish needed).
+2. Add a site block to `Caddyfile`:
+
+   ```caddyfile
+   myapp.{$CADDY_DOMAIN} {
+       tls internal
+       reverse_proxy myapp:8080
+   }
+   ```
+
+3. Reload Caddy with no downtime:
+
+   ```bash
+   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+   ```
+
+For services that stream (SSE, WebSocket-like long polling, chat tokens), set `flush_interval -1` inside the `reverse_proxy` block — see `open-webui` in the current Caddyfile.
+
+## Upgrade
+
+Bump `CADDY_TAG` in `.env`, then:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+## Reload after Caddyfile edits
+
+```bash
+docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+```
+
+No container restart, no dropped connections. Caddy validates the new config before swapping it in.
+
+## Logs
+
+```bash
+docker compose logs -f caddy
+```
+
+Access logs are emitted as structured JSON (default format) and routed via Caddy's `log` directive in the Caddyfile.
+
+## Uninstall
+
+```bash
+docker compose down
+docker volume rm caddy-data caddy-config   # destroys cert store + admin state
+```
+
+Destroying `caddy-data` regenerates the root CA on next start — every previously-trusted client will need the new root installed.
+
+## See also
+
+- Top-level [README](../README.md) for overall layout, conventions, and CI.
+- Caddy docs: <https://caddyserver.com/docs/>
+- `tls internal` reference: <https://caddyserver.com/docs/caddyfile/directives/tls#internal>
