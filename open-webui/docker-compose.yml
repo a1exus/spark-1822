@@ -5,6 +5,8 @@ services:
     image: ollama/ollama:${OLLAMA_TAG:?OLLAMA_TAG must be set in .env}
     container_name: ollama
     restart: unless-stopped
+    networks:
+      - internal
     volumes:
       - ollama:/root/.ollama
     environment:
@@ -38,8 +40,9 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    ports:
-      - "0.0.0.0:${OPEN_WEBUI_PORT:-8080}:8080"
+    networks:
+      - internal
+      - web
     volumes:
       - open-webui:/app/backend/data
     environment:
@@ -63,6 +66,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  internal:
+  web:
+    external: true
+    name: web
 
 volumes:
   ollama:

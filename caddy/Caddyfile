@@ -1,0 +1,29 @@
+{
+	# Local-CA mode: Caddy issues its own root + leaf certs.
+	# Install /data/caddy/pki/authorities/local/root.crt on each client.
+	# admin API is bound to 127.0.0.1:2019 inside the container by default.
+}
+
+spark-1822.local {
+	tls internal
+
+	encode zstd gzip
+
+	# Defense-in-depth headers. Open WebUI sets its own CSP; don't override it here.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy open-webui:8080 {
+		# Open WebUI streams chat tokens; disable proxy buffering effects.
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

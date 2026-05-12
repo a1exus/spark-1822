@@ -6,14 +6,19 @@ Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `s
 
 ```
 .
+├── caddy/               # HTTPS reverse proxy (terminates TLS, fronts all apps)
 ├── open-webui/          # Open WebUI + Ollama docker-compose stack
-│   ├── docker-compose.yml
-│   ├── .env.example
-│   └── .env             # not committed — copy from .env.example
 └── README.md
 ```
 
-Files in this repo correspond to `/opt/<name>/` on the host. Workflow: edit here, `scp` to the host (or sync via your tool of choice), then `docker compose up -d` on the host.
+Each top-level dir corresponds to `/opt/<name>/` on the host. Workflow: edit here, `scp` to the host (or sync via your tool of choice), then `docker compose up -d` on the host.
+
+App stacks share an external Docker network named `web`. Caddy is the only stack that publishes host ports (`80`, `443`). All other services stay internal and are reachable only through Caddy.
+
+```bash
+# One-time, on the host:
+docker network create web
+```
 
 ## Host
 
@@ -25,11 +30,48 @@ Files in this repo correspond to `/opt/<name>/` on the host. Workflow: edit here
 | Docker | 29.x + Compose v2 |
 | GPU runtime | `nvidia-container-toolkit` 1.19 (CDI mode) |
 
+## caddy
+
+HTTPS reverse proxy in front of every app on this host. Issues certificates from its own internal CA (`tls internal`) — clients need Caddy's root CA installed once to avoid browser warnings.
+
+### Deploy
+
+```bash
+cd /opt/caddy
+cp .env.example .env
+docker compose up -d
+docker compose ps
+```
+
+After first start, extract the root CA and install it on each client device:
+
+```bash
+# On the host:
+docker exec caddy cat /data/caddy/pki/authorities/local/root.crt > ~/caddy-root.crt
+# Then copy ~/caddy-root.crt to clients and install:
+#   macOS:   double-click → Keychain Access → set "Always Trust"
+#   iOS:     AirDrop + Settings → General → VPN & Device Management → Install
+#   Linux:   sudo cp caddy-root.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+```
+
+After trust is established, browse to `https://spark-1822.local`.
+
+To add a new app to Caddy, add a site block to `Caddyfile`:
+
+```
+myapp.spark-1822.local {
+    tls internal
+    reverse_proxy myapp:8080
+}
+```
+
+Then `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` (no downtime).
+
 ## open-webui
 
-Self-hosted [Open WebUI](https://github.com/open-webui/open-webui) backed by [Ollama](https://github.com/ollama/ollama). Two-container stack: `ollama` (GPU, internal only) + `open-webui` (UI, published on `:8080`).
+Self-hosted [Open WebUI](https://github.com/open-webui/open-webui) backed by [Ollama](https://github.com/ollama/ollama). Two-container stack: `ollama` (GPU, internal-only) + `open-webui` (UI, internal-only — exposed via Caddy).
 
-Adapted from NVIDIA's official playbook: <https://build.nvidia.com/spark/open-webui/instructions>. Diverges in three ways: services are split (instead of the bundled `:ollama` image), images are version-pinned, and secrets/config live in `.env`.
+Adapted from NVIDIA's official playbook: <https://build.nvidia.com/spark/open-webui/instructions>. Diverges in four ways: services are split (instead of the bundled `:ollama` image), images are version-pinned via `.env`, secrets live in `.env`, and the UI is fronted by Caddy on HTTPS instead of being published directly on `:8080`.
 
 ### Deploy
 
@@ -42,7 +84,7 @@ docker compose up -d
 docker compose ps
 ```
 
-Open WebUI is then reachable at `http://spark-1822.local:8080`. The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
+Open WebUI is then reachable at `https://spark-1822.local` (through Caddy). The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
 
 ### Pull models
 
@@ -81,7 +123,7 @@ docker volume rm open-webui open-webui-ollama   # destroys data and models
 
 - `.env` files contain secrets and are **never** committed (see `.gitignore`).
 - Image tags are pinned to specific versions in `.env` (single source of truth) — no `:latest`.
-- Services bind to the host network only via explicit `ports:` entries; everything else stays on the internal compose network.
+- Only Caddy publishes host ports (`80`, `443`); every other service is reachable only on the internal compose network or the shared `web` network.
 
 ## CI: Trivy security scanning
 

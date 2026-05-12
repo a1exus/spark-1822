@@ -22,27 +22,29 @@ jobs:
     outputs:
       ollama_tag: ${{ steps.tags.outputs.ollama_tag }}
       open_webui_tag: ${{ steps.tags.outputs.open_webui_tag }}
+      caddy_tag: ${{ steps.tags.outputs.caddy_tag }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - id: tags
-        working-directory: open-webui
         run: |
           set -euo pipefail
           tag_re='^[A-Za-z0-9._-]+$'
           extract() {
-            local key="$1" val
-            val=$(grep -E "^${key}=" .env.example | head -n1 | cut -d= -f2-)
+            local file="$1" key="$2" val
+            val=$(grep -E "^${key}=" "$file" | head -n1 | cut -d= -f2-)
             if [[ -z "$val" || ! "$val" =~ $tag_re ]]; then
-              echo "::error::Invalid or missing $key in open-webui/.env.example (got: '$val')" >&2
+              echo "::error::Invalid or missing $key in $file (got: '$val')" >&2
               exit 1
             fi
             printf '%s' "$val"
           }
-          ollama_tag=$(extract OLLAMA_TAG)
-          open_webui_tag=$(extract OPEN_WEBUI_TAG)
+          ollama_tag=$(extract open-webui/.env.example OLLAMA_TAG)
+          open_webui_tag=$(extract open-webui/.env.example OPEN_WEBUI_TAG)
+          caddy_tag=$(extract caddy/.env.example CADDY_TAG)
           echo "ollama_tag=${ollama_tag}" >> "$GITHUB_OUTPUT"
           echo "open_webui_tag=${open_webui_tag}" >> "$GITHUB_OUTPUT"
+          echo "caddy_tag=${caddy_tag}" >> "$GITHUB_OUTPUT"
 
   image-scan:
     needs: extract-tags
@@ -58,6 +60,8 @@ jobs:
             image: ollama/ollama:${{ needs.extract-tags.outputs.ollama_tag }}
           - name: open-webui
             image: ghcr.io/open-webui/open-webui:${{ needs.extract-tags.outputs.open_webui_tag }}
+          - name: caddy
+            image: caddy:${{ needs.extract-tags.outputs.caddy_tag }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
@@ -100,7 +104,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: config
-          scan-ref: open-webui
+          scan-ref: .
           format: sarif
           output: trivy-config.sarif
           severity: CRITICAL,HIGH,MEDIUM
