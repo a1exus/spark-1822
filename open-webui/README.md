@@ -37,6 +37,16 @@ docker compose ps
 
 Open WebUI is then reachable at `https://${CADDY_DOMAIN}`. The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
 
+The Ollama API is also exposed directly via Caddy at `https://ollama.${CADDY_DOMAIN}` so other tools (Aider, Continue, LiteLLM, the `ollama` CLI with `OLLAMA_HOST`, …) can use it without going through the WebUI:
+
+```bash
+curl -k https://ollama.spark-1822.local/api/version
+curl -k https://ollama.spark-1822.local/api/tags
+OLLAMA_HOST=https://ollama.spark-1822.local ollama list
+```
+
+No auth: trusted-LAN posture, same rationale as Netdata. Note that the Ollama REST API includes destructive endpoints (delete model, pull arbitrary model); anyone on the LAN can use them.
+
 ## Pull models
 
 ```bash

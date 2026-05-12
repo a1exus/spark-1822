@@ -1,0 +1,12 @@
+ollama.{$CADDY_DOMAIN} {
+	tls internal
+
+	encode zstd gzip
+	import common_headers
+	import default_log
+
+	reverse_proxy ollama:11434 {
+		# Streaming token responses; disable proxy buffering.
+		flush_interval -1
+	}
+}

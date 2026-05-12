@@ -24,7 +24,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 | [`caddy/`](caddy/) | HTTPS reverse proxy, Caddy local CA | publishes `:80`/`:443` |
 | [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
-| [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://spark-1822.local` |
+| [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
 | [`.github/`](.github/) | Trivy CI workflow (CVE / IaC / secret scans) | GitHub Actions |
 
 ## Host
