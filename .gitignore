@@ -1,0 +1,17 @@
+# Secrets — never commit
+**/.env
+.env
+
+# Local-only compose overrides
+**/docker-compose.override.yml
+docker-compose.override.yml
+
+# macOS
+.DS_Store
+
+# Editor cruft
+*.swp
+*~
+
+# Claude Code local state
+.claude/
