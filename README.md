@@ -23,6 +23,7 @@ Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `s
 ├── open-webui/    # Open WebUI + Ollama (LLM chat UI)
 ├── .github/       # CI: Trivy security scanning
 ├── CHANGELOG.md
+├── LICENSE
 └── README.md
 ```
 

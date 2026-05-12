@@ -7,20 +7,23 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-12
+
 ### Added
 
-- `llama-cpp/`: read-only mounts of Ollama's blob store (`open-webui-ollama` external volume) and the host's HuggingFace CLI cache, plus a `MODEL_PATH` env var that lets `llama-server` skip downloading and reuse any file from those caches.
-- `open-webui/README.md` and `.github/README.md` so each component documents itself.
-- Dedicated `.github/workflows/trivy.md` with the full Trivy workflow doc; `.github/README.md` is now a thin workflow index.
+- **`llama-cpp/`** stack: GPU-accelerated [llama.cpp](https://github.com/ggml-org/llama.cpp) server (image `ghcr.io/ggml-org/llama.cpp:server-cuda`, pinned by digest). aarch64+CUDA confirmed on GB10 (compute capability 12.1, 124 GiB VRAM). OpenAI-compatible API + web UI fronted by Caddy at `https://llama.${CADDY_DOMAIN}`. Default model is `gpt-oss-safeguard-120b` via HuggingFace auto-download — workaround for the Ollama pull bug (ollama/ollama#16121). New Caddy site block + mDNS alias.
+- llama-cpp: read-only mounts of Ollama's blob store (`open-webui-ollama` external volume) and the host's HuggingFace CLI cache, plus a `MODEL_PATH` env var so `llama-server` can skip downloading and reuse any file from those caches.
 - Direct Caddy-fronted access to the Ollama API at `https://ollama.${CADDY_DOMAIN}` (no auth, LAN-trust). The `ollama` container joins the shared `web` network in addition to `internal`. New `Caddyfile.d/ollama.caddyfile` + mDNS alias.
 - `mdns/Makefile` with `install` / `uninstall` / `list` / `help` targets. Replaces the `install.sh` / `uninstall.sh` pair.
-- **`llama-cpp/`** stack: GPU-accelerated [llama.cpp](https://github.com/ggml-org/llama.cpp) server (image `ghcr.io/ggml-org/llama.cpp:server-cuda`, pinned by digest). aarch64+CUDA confirmed on GB10 (compute capability 12.1, 124 GiB VRAM). OpenAI-compatible API + web UI fronted by Caddy at `https://llama.${CADDY_DOMAIN}`. Default model is `gpt-oss-safeguard-120b` via HuggingFace auto-download — workaround for the Ollama pull bug (ollama/ollama#16121). Caddyfile.d snippet + mDNS alias included.
-- Trivy: relaxed `extract-tags` regex to allow `@:` so digest-pinned tags (`server-cuda@sha256:...`) are accepted; added `llama-cpp` to the image-scan matrix.
+- `open-webui/README.md` and `.github/README.md` so each component documents itself.
+- Dedicated `.github/workflows/trivy.md` with the full Trivy workflow doc; `.github/README.md` is now a thin workflow index.
+- Trivy: relaxed `extract-tags` regex to allow `@:` so digest-pinned tags (`server-cuda@sha256:…`) are accepted; added `llama-cpp` to the image-scan matrix.
 
 ### Changed
 
-- Slim top-level `README.md` to an overview + per-component links; per-stack details now live in each directory's `README.md`.
+- Slim top-level `README.md` to an overview + per-component links; per-stack details now live in each directory's `README.md`. Added a table-of-contents.
 - Split `caddy/Caddyfile` into per-service files under `caddy/Caddyfile.d/<name>.caddyfile`, loaded via `import`. Adding a new app is now a single file drop + reload.
+- `.gitignore`: added host-local `/opt` trees we don't manage in this repo (`containerd`, `MicronTechnology`, `nvidia`, `NVIDIA AI Workbench`).
 
 ### Removed
 
@@ -52,5 +55,6 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `.gitignore` excludes `.env`, `*.crt`, `*.key`, and `docker-compose.override.yml`.
 - All third-party GitHub Actions pinned by commit SHA.
 
-[Unreleased]: https://github.com/a1exus/spark-1822/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/a1exus/spark-1822/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/a1exus/spark-1822/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/a1exus/spark-1822/releases/tag/v0.1.0

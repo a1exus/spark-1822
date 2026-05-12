@@ -32,11 +32,12 @@ llama-cpp/
 cp .env.example .env
 # Edit .env:
 #   LLAMACPP_TAG     — pinned image (server-cuda@sha256:...). Multi-arch; works on aarch64+CUDA.
-#   MODEL_HF_REPO    — HuggingFace repo, e.g. lmstudio-community/gpt-oss-safeguard-120b-GGUF
-#   MODEL_HF_FILE    — GGUF file inside the repo (use the first split for multi-part models)
-#   MODEL_ALIAS      — name surfaced via the API
+#   MODEL_PATH       — local file inside the container (Ollama blob, HF snapshot, anything mounted). Wins if set.
+#   MODEL_URL        — remote URL; llama.cpp downloads into the llama-cpp-cache volume.
+#   MODEL_ALIAS      — name surfaced via the OpenAI-compatible API.
 #   CTX_SIZE         — context window (default 8192)
 #   N_GPU_LAYERS     — layers on GPU (999 = all)
+#   HF_CACHE_HOST    — host path holding the HuggingFace CLI cache (default /home/alexus/.cache/huggingface).
 #   HF_TOKEN         — only needed for gated/private models
 ```
 

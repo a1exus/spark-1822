@@ -14,7 +14,7 @@ Workflow: [`trivy.yml`](trivy.yml). Scans every container image we deploy plus t
 | Job | What it scans |
 |---|---|
 | `extract-tags` | Reads pinned image tags from each stack's `.env.example` and exposes them as job outputs. |
-| `image-scan` (matrix) | CVE scan of each pinned image: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `caddy`, `netdata/netdata`. Severity HIGH+CRITICAL, fixed-only. |
+| `image-scan` (matrix) | CVE scan of each pinned image: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `caddy`, `netdata/netdata`, `ghcr.io/ggml-org/llama.cpp`. Severity HIGH+CRITICAL, fixed-only. |
 | `config-scan` | Trivy IaC config check across the whole repo (compose misconfig, etc.). |
 | `secret-scan` | Filesystem scan for accidentally-committed secrets. |
 
@@ -29,7 +29,7 @@ All findings are uploaded as SARIF to the repo's [Security tab](https://github.c
 
 - All third-party actions are pinned by commit SHA (not tag).
 - Top-level `permissions: contents: read`; jobs declare `security-events: write` only where needed.
-- `extract-tags` parses `.env.example` with `grep` + a strict regex (no `source`-ing of user-controlled files — protects against workflow injection via PR-modified env values).
+- `extract-tags` parses `.env.example` with `grep` + a strict regex `^[A-Za-z0-9._@:+-]+$` (no `source`-ing of user-controlled files — protects against workflow injection via PR-modified env values). The regex accepts OCI digest pins like `server-cuda@sha256:…` while excluding every shell-meaningful character.
 - Concurrency: `cancel-in-progress` per ref to avoid wasted runs.
 
 ## Maintenance

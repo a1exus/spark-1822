@@ -12,7 +12,9 @@ caddy/
 ├── Caddyfile                  # global options + snippets + import directive
 ├── Caddyfile.d/               # one file per service
 │   ├── open-webui.caddyfile
-│   └── netdata.caddyfile
+│   ├── ollama.caddyfile
+│   ├── netdata.caddyfile
+│   └── llama-cpp.caddyfile
 ├── .env.example               # committed; copy to .env and customize
 └── .env                       # not committed (gitignored)
 ```
