@@ -135,6 +135,10 @@ docker compose down
 docker volume rm open-webui open-webui-ollama   # destroys data and models
 ```
 
+## Changelog
+
+See [`CHANGELOG.md`](CHANGELOG.md) — [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, [SemVer](https://semver.org/spec/v2.0.0.html) versioning.
+
 ## Conventions
 
 - `.env` files contain secrets and are **never** committed (see `.gitignore`).
