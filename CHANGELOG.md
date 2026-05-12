@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `open-webui/README.md` and `.github/README.md` so each component documents itself.
 - Dedicated `.github/workflows/trivy.md` with the full Trivy workflow doc; `.github/README.md` is now a thin workflow index.
 - Direct Caddy-fronted access to the Ollama API at `https://ollama.${CADDY_DOMAIN}` (no auth, LAN-trust). The `ollama` container joins the shared `web` network in addition to `internal`. New `Caddyfile.d/ollama.caddyfile` + mDNS alias.
-- `mdns/uninstall.sh` — symmetric counterpart to `install.sh`. Disables every active alias instance, removes the script + unit, reloads systemd.
+- `mdns/Makefile` with `install` / `uninstall` / `list` / `help` targets. Replaces the `install.sh` / `uninstall.sh` pair.
 
 ### Changed
 

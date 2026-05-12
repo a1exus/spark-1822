@@ -10,8 +10,7 @@ Unlike the other stacks in this repo, this is **not** a Docker compose stack —
 mdns/
 ├── sparky-mdns-alias            # bash script — publishes one alias
 ├── sparky-mdns-alias@.service   # systemd template unit
-├── install.sh                   # installer (root via sudo)
-├── uninstall.sh                 # uninstaller — disables all instances, removes files
+├── Makefile                     # install / uninstall / list
 └── README.md
 ```
 
@@ -19,7 +18,7 @@ mdns/
 
 ```bash
 cd /opt/mdns
-./install.sh
+make install
 ```
 
 This copies:
@@ -30,6 +29,16 @@ This copies:
 | `sparky-mdns-alias@.service` | `/etc/systemd/system/sparky-mdns-alias@.service` (mode 644) |
 
 and runs `systemctl daemon-reload`. Re-run after edits.
+
+`make` with no target prints the available targets:
+
+```
+$ make
+  help         Show this help.
+  install      Install the script + systemd template unit (idempotent).
+  uninstall    Disable every active alias instance, remove the script + unit.
+  list         Show every currently-active alias instance.
+```
 
 ## Add an alias
 
@@ -57,10 +66,10 @@ Stops + disables every active alias instance, removes the script and unit file, 
 
 ```bash
 cd /opt/mdns
-./uninstall.sh
+make uninstall
 ```
 
-The repo files under `/opt/mdns/` stay in place so a future `./install.sh` brings everything back.
+The repo files under `/opt/mdns/` stay in place so a future `make install` brings everything back.
 
 ## How it works
 
