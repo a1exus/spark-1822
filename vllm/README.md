@@ -50,15 +50,9 @@ vllm/
 
 ## Configure
 
-`.env` holds settings that don't change with the model (image pin, HF cache, optional HF token). Variant files in `envs/` hold the per-model knobs.
+Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up VARIANT=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
 
-```bash
-cp .env.example .env
-# Edit .env:
-#   VLLM_TAG          — pinned image tag (e.g. v0.20.2).
-#   HF_CACHE_HOST     — host path holding the HuggingFace CLI cache.
-#   HF_TOKEN          — only needed for gated/private models.
-```
+`.env.example` is a reference template showing every variable; you don't need to edit it.
 
 ## Deploy
 
@@ -73,7 +67,8 @@ make logs                                # tail
 Equivalent without Make:
 
 ```bash
-docker compose --env-file .env --env-file envs/<variant>.env up -d
+cp envs/<variant>.env .env
+docker compose up -d
 docker compose logs -f vllm        # first run: HF download
 ```
 

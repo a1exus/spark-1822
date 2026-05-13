@@ -1,6 +1,6 @@
 # llama-cpp env variants
 
-One file per model. Picked at start via `--env-file` so `.env` stays put for common settings (image tag, HF cache, HF token).
+One **self-contained** file per model. `make up VARIANT=<name>` copies `envs/<name>.env` over the project's `.env`, so plain `docker compose ps/logs/down/pull` work afterwards without needing extra `--env-file` flags.
 
 Each variant chooses **how to find the model**:
 
@@ -21,15 +21,9 @@ Plus `MODEL_ALIAS`, `CTX_SIZE`, and `N_GPU_LAYERS` tuned per model.
 ```bash
 # from /opt/llama-cpp:
 make list                                       # show available variants
-make up VARIANT=gpt-oss-safeguard-120b-hf       # start with that one
-make logs                                       # tail
+make up VARIANT=gpt-oss-safeguard-120b-hf       # copies envs/<name>.env → .env, then up -d
+make logs                                       # plain docker compose, works because .env has everything
 make down
-```
-
-Behind the scenes:
-
-```bash
-docker compose --env-file .env --env-file envs/<variant>.env up -d
 ```
 
 ## Maintenance

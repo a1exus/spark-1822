@@ -59,15 +59,9 @@ llama-cpp/
 
 ## Configure
 
-`.env` holds settings that don't change with the model (image pin, HF cache, optional HF token). Variant files in `envs/` hold the per-model knobs (model source, alias, context, GPU layers).
+Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up VARIANT=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
 
-```bash
-cp .env.example .env
-# Edit .env:
-#   LLAMACPP_TAG     — pinned image (server-cuda@sha256:…). Multi-arch — works on aarch64+CUDA.
-#   HF_CACHE_HOST    — host path holding the HuggingFace CLI cache (default /opt/hf/.cache/huggingface).
-#   HF_TOKEN         — only needed for gated/private models.
-```
+`.env.example` is a reference template showing every variable; you don't need to edit it.
 
 ### Pinning the image
 
@@ -96,7 +90,8 @@ make logs                                  # tail
 Equivalent without Make:
 
 ```bash
-docker compose --env-file .env --env-file envs/<variant>.env up -d
+cp envs/<variant>.env .env
+docker compose up -d
 ```
 
 Once healthy, the server is at `https://llama.${CADDY_DOMAIN}`:

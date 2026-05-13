@@ -20,7 +20,7 @@ remote:  ## List HF repos already downloaded on the remote host.
 	@ssh $(REMOTE_HOST) 'ls -d $(HF_CACHE_HOST)/hub/models--* 2>/dev/null' \
 	    | sed 's|.*/models--||; s|--|/|' | sort
 
-sync:  ## Create an env file for each remote HF model not present locally. Never overwrites; never downloads.
+sync:  ## Create a self-contained env file for each remote HF model not present locally. Never overwrites; never downloads.
 	@remote=$$(ssh $(REMOTE_HOST) 'ls -d $(HF_CACHE_HOST)/hub/models--* 2>/dev/null' | sed 's|.*/models--||; s|--|/|'); \
 	if [[ -z "$$remote" ]]; then echo "no models on $(REMOTE_HOST):$(HF_CACHE_HOST)/hub/"; exit 0; fi; \
 	created=0; \
@@ -36,6 +36,12 @@ sync:  ## Create an env file for each remote HF model not present locally. Never
 	        printf '+ create %s — %s\n' "$$file" "$$repo"; \
 	        { \
 	            echo "# $$repo · in $(HF_CACHE_HOST) on the remote host."; \
+	            echo "# Self-contained — \`make up VARIANT=$$short\` copies this to .env."; \
+	            echo ""; \
+	            echo "VLLM_TAG=v0.20.2"; \
+	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \
+	            echo "HF_TOKEN="; \
+	            echo ""; \
 	            echo "VLLM_MODEL=$$repo"; \
 	            echo "VLLM_SERVED_NAME=$$short"; \
 	            echo "VLLM_GPU_MEM=0.9"; \

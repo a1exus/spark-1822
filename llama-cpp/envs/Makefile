@@ -32,7 +32,9 @@ define gguf_shortname
 $(shell echo "$(1)" | sed -e 's/\.gguf$$//' -e 's/-Q[0-9][A-Z_0-9]*//I' -e 's/-MXFP[0-9]\+//I' -e 's/-IQ[0-9][A-Z_0-9]*//I' -e 's/-0\?[0-9]\+-of-0\?[0-9]\+//' -e 's/\.0\?[0-9]\+-of-0\?[0-9]\+//' | tr 'A-Z' 'a-z')
 endef
 
-sync:  ## Create an env file for each remote GGUF not yet present locally. Never overwrites; never downloads.
+LLAMACPP_TAG_DEFAULT ?= server-cuda
+
+sync:  ## Create a self-contained env file for each remote GGUF not yet present locally. Never overwrites; never downloads.
 	@gguf_list=$$(ssh $(REMOTE_HOST) "docker run --rm -v $(LLAMACPP_CACHE_VOL):/d alpine sh -c 'ls /d/*.gguf 2>/dev/null'" | sed 's|.*/||' | sort -u); \
 	hf_list=$$(ssh $(REMOTE_HOST) 'find $(HF_CACHE_HOST) -name "*.gguf" 2>/dev/null' | sort -u); \
 	created=0; \
@@ -47,6 +49,12 @@ sync:  ## Create an env file for each remote GGUF not yet present locally. Never
 	        printf '+ create %s — MODEL_PATH=/root/.cache/llama.cpp/%s\n' "$$file" "$$gguf"; \
 	        { \
 	            echo "# $$gguf · in docker volume $(LLAMACPP_CACHE_VOL) on the remote host."; \
+	            echo "# Self-contained — \`make up VARIANT=$$short-hf\` copies this to .env."; \
+	            echo ""; \
+	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
+	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \
+	            echo "HF_TOKEN="; \
+	            echo ""; \
 	            echo "MODEL_PATH=/root/.cache/llama.cpp/$$gguf"; \
 	            echo "MODEL_ALIAS=$$short"; \
 	            echo "CTX_SIZE=8192"; \
@@ -68,6 +76,12 @@ sync:  ## Create an env file for each remote GGUF not yet present locally. Never
 	        printf '+ create %s — MODEL_PATH=%s\n' "$$file" "$$in_container"; \
 	        { \
 	            echo "# $$base · in $(HF_CACHE_HOST) on the remote host."; \
+	            echo "# Self-contained — \`make up VARIANT=$$short-hfcache\` copies this to .env."; \
+	            echo ""; \
+	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
+	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \
+	            echo "HF_TOKEN="; \
+	            echo ""; \
 	            echo "MODEL_PATH=$$in_container"; \
 	            echo "MODEL_ALIAS=$$short"; \
 	            echo "CTX_SIZE=8192"; \

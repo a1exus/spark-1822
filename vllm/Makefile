@@ -19,7 +19,7 @@ help:  ## Show this help.
 list:  ## List available env variants under envs/.
 	@ls envs/*.env 2>/dev/null | sed 's|envs/||; s|\.env$$||' | sort
 
-up:  ## Start with a variant. Usage: make up VARIANT=<name>
+up:  ## Activate a variant (copies envs/<name>.env → .env) and start. Usage: make up VARIANT=<name>
 	@if [[ -z "$(VARIANT)" ]]; then \
 	    echo "usage: make up VARIANT=<name>" >&2; \
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
@@ -30,7 +30,8 @@ up:  ## Start with a variant. Usage: make up VARIANT=<name>
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
 	    exit 1; \
 	fi
-	$(COMPOSE) --env-file .env --env-file envs/$(VARIANT).env up -d
+	cp envs/$(VARIANT).env .env
+	$(COMPOSE) up -d
 
 down:  ## Stop vllm (volumes preserved).
 	$(COMPOSE) down

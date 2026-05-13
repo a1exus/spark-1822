@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Changed
 
 - `.gitignore`: added `hf` to the vendor/host-shipped block (the host's HuggingFace cache lives at `/opt/hf/` and shouldn't end up in this repo if anyone mirrors it locally).
+- `llama-cpp/` + `vllm/` variant workflow: each `envs/<name>.env` is now **self-contained** (image pin + HF cache + HF token + model knobs in one file). `make up VARIANT=<name>` copies it to the project's `.env` instead of chaining `--env-file` flags. Fixes the situation where `docker compose ps/logs/down` failed after `make up` because plain compose only loads the default `.env`. `envs/Makefile sync` was updated to generate self-contained files.
 
 ### Added
 
