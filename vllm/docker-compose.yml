@@ -9,6 +9,11 @@ services:
     restart: "no"
     networks:
       - caddy
+    # Loopback-only bind: Caddy reaches the container via the `caddy` docker
+    # network; this port is for direct host-side curl/benchmarks, not the
+    # outside world. Override HOST_PORT in .env if 8000 is taken.
+    ports:
+      - "127.0.0.1:${HOST_PORT:-8000}:8000"
     ipc: host                       # required for NCCL / Torch shared-memory paths
     shm_size: "8gb"
     volumes:
