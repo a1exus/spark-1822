@@ -55,7 +55,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 
 ```bash
 # On the host:
-docker network create web                # shared external network for all stacks
+docker network create caddy              # shared external network — Caddy reaches every app on this
 cd /opt/mdns && make install             # mDNS alias helper (see mdns/README.md)
 ```
 
@@ -79,7 +79,7 @@ ssh spark-1822.local "
 
 - `.env` files contain secrets and are **never** committed (see `.gitignore`).
 - Image tags are pinned to specific versions in `.env` (single source of truth) — no `:latest`.
-- Only Caddy publishes host ports (`80`, `443`); every other service is reachable only on the internal compose network or the shared `web` network.
+- Only Caddy publishes host ports (`80`, `443`); every other service is reachable only on the internal compose network or the shared `caddy` network.
 - `/opt/<stack>/` on the host is owned `root:root`. The only exception is each stack's `.env`, which is `root:docker 640` so the `docker`-group `alexus` user can read it (and run `docker compose` without sudo). Editing configs always requires `sudo`.
 
 ## Changelog

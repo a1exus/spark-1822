@@ -28,7 +28,7 @@ cp .env.example .env
 
 ## Deploy
 
-Prereq: the shared `web` external network must exist and [Caddy](../caddy/) must be running.
+Prereq: the shared `caddy` external network must exist and [Caddy](../caddy/) must be running.
 
 ```bash
 docker compose up -d

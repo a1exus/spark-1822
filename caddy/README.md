@@ -1,6 +1,6 @@
 # caddy
 
-HTTPS reverse proxy for every other app on this host. Terminates TLS using [Caddy](https://caddyserver.com)'s internal CA (`tls internal`) and forwards traffic to the right service over the shared `web` Docker network.
+HTTPS reverse proxy for every other app on this host. Terminates TLS using [Caddy](https://caddyserver.com)'s internal CA (`tls internal`) and forwards traffic to the right service over the shared `caddy` Docker network.
 
 Caddy is the only stack that publishes host ports (`80`, `443`, plus `443/udp` for HTTP/3). Every other service is unreachable from the LAN except through it.
 
@@ -8,7 +8,7 @@ Caddy is the only stack that publishes host ports (`80`, `443`, plus `443/udp` f
 
 ```
 caddy/
-├── docker-compose.yml         # caddy service, joins external `web` network
+├── docker-compose.yml         # caddy service, joins external `caddy` network
 ├── Caddyfile                  # global options + snippets + import directive
 ├── Caddyfile.d/               # one file per service
 │   ├── open-webui.caddyfile
@@ -34,10 +34,10 @@ cp .env.example .env
 
 ## Deploy
 
-Prereq: the shared `web` network must exist (one-time, on the host):
+Prereq: the shared `caddy` network must exist (one-time, on the host):
 
 ```bash
-docker network create web
+docker network create caddy
 ```
 
 Then:
@@ -70,7 +70,7 @@ The root certificate is host-specific (gitignored as `*.crt`) and rotates only i
 
 ## Add a new app
 
-1. Run the new app's stack with a service on the `web` network (no host port publish needed).
+1. Run the new app's stack with a service on the `caddy` network (no host port publish needed).
 2. Create `Caddyfile.d/<name>.caddyfile`:
 
    ```caddyfile

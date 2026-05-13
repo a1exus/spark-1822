@@ -6,7 +6,7 @@ services:
     container_name: llama-cpp
     restart: unless-stopped
     networks:
-      - web
+      - caddy
     volumes:
       # llama.cpp's own model cache (filled by --model-url).
       - llama-cpp-cache:/root/.cache/llama.cpp
@@ -50,9 +50,9 @@ services:
         max-file: "3"
 
 networks:
-  web:
+  caddy:
     external: true
-    name: web
+    name: caddy
 
 volumes:
   llama-cpp-cache:

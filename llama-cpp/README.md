@@ -6,7 +6,7 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ## Topology
 
-`llama-cpp` runs as a single container on the shared `web` Docker network. It connects only to Caddy; no host port is published. Three model sources are wired up read-only into the container so existing downloads can be reused:
+`llama-cpp` runs as a single container on the shared `caddy` Docker network. It connects only to Caddy; no host port is published. Three model sources are wired up read-only into the container so existing downloads can be reused:
 
 | In-container path | Source |
 |---|---|
@@ -57,7 +57,7 @@ Set `LLAMACPP_TAG=server-cuda@<that-digest>` in `.env`.
 
 ## Deploy
 
-Prereq: `caddy/` is running and the shared `web` network exists.
+Prereq: `caddy/` is running and the shared `caddy` network exists.
 
 ```bash
 docker compose up -d

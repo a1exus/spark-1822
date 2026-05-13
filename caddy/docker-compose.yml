@@ -10,7 +10,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - web
+      - caddy
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
@@ -35,9 +35,9 @@ services:
         max-file: "3"
 
 networks:
-  web:
+  caddy:
     external: true
-    name: web
+    name: caddy
 
 volumes:
   caddy-data:
