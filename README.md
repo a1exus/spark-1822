@@ -21,7 +21,7 @@ Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `s
 ├── mdns/          # systemd helper publishing subdomain mDNS aliases
 ├── netdata/       # Real-time host + container observability
 ├── open-webui/    # Open WebUI + Ollama (LLM chat UI)
-├── vllm/          # vLLM inference server (HF safetensors; not smoke-tested on GB10 yet)
+├── vllm/          # vLLM inference server (HF safetensors)
 ├── .github/       # CI: Trivy security scanning
 ├── CHANGELOG.md
 ├── LICENSE
@@ -39,7 +39,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 | [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
 | [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://open-webui.spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
-| [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — model variants under `envs/`; **scaffolded, not yet smoke-tested on GB10** | `https://vllm.spark-1822.local` |
+| [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — model variants under `envs/`; OpenAI tool-calling enabled (`qwen3_xml` parser) | `https://vllm.spark-1822.local` |
 | [`.github/`](.github/) | Trivy CI workflow (CVE / IaC / secret scans) | GitHub Actions |
 
 ## Host

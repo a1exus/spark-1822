@@ -4,7 +4,7 @@
 
 vLLM complements [`llama-cpp/`](../llama-cpp/): use llama.cpp for GGUF files (smaller, CPU-friendly quantizations), vLLM for HF-native models (safetensors) and high-throughput serving with continuous batching + PagedAttention.
 
-> ⚠️ **Not yet smoke-tested on this host.** vLLM's published support matrix doesn't list compute capability 12.1 (GB10). The image multi-arch index includes arm64, but the first `docker compose up -d` here may fail if sm_120 CUDA kernels aren't compiled in. If it works, leave this note alone; if it doesn't, expect to build vLLM from source or wait for upstream support.
+Smoke-tested on GB10 (compute capability 12.1) with `Qwen/Qwen3.6-27B` at `--max-model-len 65536`: model loads on the GPU, the OpenAI-compatible API serves `/v1/chat/completions`, and tool-calling (`--tool-call-parser qwen3_xml`) returns a populated `tool_calls` structure for a single-function request. `gpt-oss-*` variants still fail at startup because the bundled `openai-harmony` in `vllm/vllm-openai:v0.20.2` fetches a vocab file from a URL that 404s upstream — unrelated to GB10 / sm_120.
 
 ## Supported model formats
 

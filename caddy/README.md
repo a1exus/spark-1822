@@ -61,10 +61,17 @@ Install it:
 
 | Platform | Command / steps |
 |---|---|
-| macOS | Open `caddy-root.crt` → Keychain Access → System keychain → set the cert to "Always Trust". |
+| macOS (CLI) | `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain caddy-root.crt` |
+| macOS (GUI) | Open `caddy-root.crt` → Keychain Access → System keychain → set the cert to "Always Trust". |
 | iOS | AirDrop or email `caddy-root.crt` → Install profile → Settings → General → About → Certificate Trust Settings → enable full trust. |
 | Linux (Debian/Ubuntu) | `sudo cp caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt && sudo update-ca-certificates` |
+| Linux (Fedora/RHEL/CentOS) | `sudo cp caddy-root.crt /etc/pki/ca-trust/source/anchors/ && sudo update-ca-trust` |
+| Linux (Arch) | `sudo trust anchor --store caddy-root.crt` |
+| Windows (PowerShell, admin) | `Import-Certificate -FilePath caddy-root.crt -CertStoreLocation Cert:\LocalMachine\Root` |
+| Windows (cmd, admin) | `certutil -addstore -f "ROOT" caddy-root.crt` |
+| Windows (GUI) | Double-click `caddy-root.crt` → Install Certificate → Store Location: **Local Machine** → "Place all certificates in the following store" → Browse → **Trusted Root Certification Authorities**. |
 | Firefox (any OS) | Firefox doesn't use the system store. Settings → Privacy & Security → Certificates → View Certificates → Authorities → Import. |
+| Node.js apps (opencode, etc.) | Node bundles its own CA list and ignores the system store. Either export `NODE_EXTRA_CA_CERTS=$(pwd)/caddy-root.crt` (run from the directory holding the file) before launching, or on Node ≥22 set `NODE_USE_SYSTEM_CA=1` (then the OS install above applies). |
 
 The root certificate is host-specific (gitignored as `*.crt`) and rotates only if the `caddy-data` volume is destroyed.
 
