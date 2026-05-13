@@ -35,7 +35,7 @@ docker compose up -d
 docker compose ps
 ```
 
-Open WebUI is then reachable at `https://${CADDY_DOMAIN}`. The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
+Open WebUI is then reachable at `https://open-webui.${CADDY_DOMAIN}`. The first user to register becomes admin; after that, set `ENABLE_SIGNUP=false` in `.env` and re-run `docker compose up -d` to lock it down.
 
 The Ollama API is also exposed directly via Caddy at `https://ollama.${CADDY_DOMAIN}` so other tools (Aider, Continue, LiteLLM, the `ollama` CLI with `OLLAMA_HOST`, …) can use it without going through the WebUI:
 

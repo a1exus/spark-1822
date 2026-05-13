@@ -1,4 +1,4 @@
-{$CADDY_DOMAIN} {
+open-webui.{$CADDY_DOMAIN} {
 	tls internal
 
 	encode zstd gzip

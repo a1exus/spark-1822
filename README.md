@@ -38,7 +38,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 | [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF, OpenAI-compatible API + web UI) — model variants under `envs/` | `https://llama.spark-1822.local` |
 | [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
-| [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
+| [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://open-webui.spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
 | [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — model variants under `envs/`; **scaffolded, not yet smoke-tested on GB10** | `https://vllm.spark-1822.local` |
 | [`.github/`](.github/) | Trivy CI workflow (CVE / IaC / secret scans) | GitHub Actions |
 
