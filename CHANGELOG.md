@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Added
 
 - **One-env-per-model-variant** layout for `llama-cpp/` and `vllm/`. Each stack now has an `envs/<name>.env` directory of ready-made variant files plus a `Makefile` (`make list`, `make up VARIANT=<name>`, `make down`, `make logs`, `make ps`). The common `.env` keeps image-tag / HF-cache / HF-token; variant files set model + alias + context + GPU-layer knobs. `docker compose --env-file .env --env-file envs/<name>.env up -d` is the underlying invocation.
-- `llama-cpp/entrypoint.sh`: new `MODEL_OLLAMA=<name>:<tag>` form. Resolves the Ollama manifest at `/ollama/.../<name>/<tag>` to the right blob path at start (awk-parsed; no jq dependency). Lets envs stay portable across hosts (no hardcoded sha digests).
-- `llama-cpp/envs/`: 9 variants — `gpt-oss-safeguard-120b-hf`, `gpt-oss-safeguard-20b`, `qwen3.6-35b`, `phi4-14b`, `gemma4-e4b`, `llama3.1-8b`, `deepseek-r1-8b`, `granite4.1-3b`, `tinyllama`.
+- `llama-cpp/envs/`: HF-backed variants only — `gpt-oss-safeguard-120b-hf` (URL-pulled into `llama-cpp-cache`). HF-cache-backed variants can be added by pointing `MODEL_PATH` at a GGUF under `/root/.cache/huggingface/hub/.../`.
 - `vllm/envs/`: 2 variants — `gpt-oss-120b`, `qwen3.5-27b-reasoning` — only what's actually downloaded under `/opt/hf/.cache/huggingface/`.
+
+### Removed
+
+- `llama-cpp/envs/`: dropped the 8 Ollama-blob variant files (`gpt-oss-safeguard-20b`, `qwen3.6-35b`, `phi4-14b`, `gemma4-e4b`, `llama3.1-8b`, `deepseek-r1-8b`, `granite4.1-3b`, `tinyllama`). The `MODEL_OLLAMA` resolution in `entrypoint.sh`, the `/ollama:ro` mount, and the env pass-through stay so an Ollama-backed variant can be added back any time without code changes.
 - **`vllm/`** stack (scaffolded; **not smoke-tested on GB10 yet**): [vLLM](https://github.com/vllm-project/vllm) inference server (image `vllm/vllm-openai:v0.20.2`, multi-arch arm64+amd64). OpenAI-compatible API fronted by Caddy at `https://vllm.${CADDY_DOMAIN}`. Shares the host's HuggingFace cache (`/opt/hf/.cache/huggingface`) with `llama-cpp/`. Complements `llama-cpp/` (vLLM for HF safetensors + high-throughput serving; llama.cpp for GGUF). `restart: "no"` for GPU exclusivity with Ollama / llama-cpp. Caveat: vLLM's published support matrix doesn't list compute capability 12.1 (GB10), so the first `docker compose up -d` may fail until upstream ships sm_120 kernels.
 - Trivy: `vllm/vllm-openai` added to the image-scan matrix; new `vllm_tag` output from `extract-tags`.
 

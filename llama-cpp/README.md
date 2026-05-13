@@ -24,11 +24,11 @@ cd /opt/llama-cpp && make down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
-Three model sources are wired up read-only into the container so existing downloads can be reused:
+Three model sources are wired into the container:
 
 | In-container path | Source |
 |---|---|
-| `/root/.cache/llama.cpp/` | llama.cpp's own download cache (named volume `llama-cpp-cache`) |
+| `/root/.cache/llama.cpp/` | llama.cpp's own download cache (named volume `llama-cpp-cache`, filled via `MODEL_URL`) |
 | `/ollama/models/blobs/sha256-<hex>` | Ollama-cached GGUF blobs (external volume `open-webui-ollama`, read-only) |
 | `/root/.cache/huggingface/hub/...` | HuggingFace CLI cache on the host, bind-mounted read-only |
 
@@ -43,15 +43,7 @@ llama-cpp/
 ├── Makefile             # make up VARIANT=<name> / list / down / logs / ps
 ├── envs/                # one .env per model variant — pick one with `make up VARIANT=…`
 │   ├── README.md
-│   ├── gpt-oss-safeguard-120b-hf.env
-│   ├── gpt-oss-safeguard-20b.env
-│   ├── qwen3.6-35b.env
-│   ├── phi4-14b.env
-│   ├── gemma4-e4b.env
-│   ├── llama3.1-8b.env
-│   ├── deepseek-r1-8b.env
-│   ├── granite4.1-3b.env
-│   └── tinyllama.env
+│   └── gpt-oss-safeguard-120b-hf.env
 ├── .env.example         # common settings (image tag, HF cache, HF token)
 └── .env                 # gitignored copy of the above
 ```
@@ -113,9 +105,26 @@ Once healthy, the server is at `https://llama.${CADDY_DOMAIN}`:
 
 Switch to another variant with `make up VARIANT=<name>` (or repeat the `--env-file` invocation). The `llama-cpp-cache` volume preserves previously-downloaded URL-pulled models, so swapping back is fast.
 
+### Adding a new variant from the HuggingFace CLI cache
+
+The host's `/opt/hf/.cache/huggingface/` is mounted read-only at `/root/.cache/huggingface/`. Files downloaded via `huggingface-cli download <repo> <file>` or `hf download <repo> <file>` live at:
+
+```
+/root/.cache/huggingface/hub/models--<org>--<repo>/snapshots/<rev>/<file>
+```
+
+Create `envs/<name>.env`:
+
+```
+MODEL_PATH=/root/.cache/huggingface/hub/models--<org>--<repo>/snapshots/<rev>/<file>.gguf
+MODEL_ALIAS=<friendly-name>
+CTX_SIZE=8192
+N_GPU_LAYERS=999
+```
+
 ### Adding a new Ollama-backed variant
 
-`ollama pull <name>:<tag>` on the host puts the GGUF into the `open-webui-ollama` Docker volume, which this stack mounts at `/ollama:ro`. Then create `envs/<name>-<tag>.env`:
+The mount + resolution stay wired up even though no variant file ships with one. `ollama pull <name>:<tag>` on the host puts the GGUF into the `open-webui-ollama` Docker volume; then drop:
 
 ```
 MODEL_OLLAMA=<name>:<tag>
@@ -124,17 +133,11 @@ CTX_SIZE=8192
 N_GPU_LAYERS=999
 ```
 
-The entrypoint resolves the right blob path at start by reading the Ollama manifest at `/ollama/models/manifests/registry.ollama.ai/library/<name>/<tag>` — no need to hardcode digests.
+into `envs/<name>-<tag>.env`. The entrypoint resolves the right blob path at start by reading the Ollama manifest at `/ollama/models/manifests/registry.ollama.ai/library/<name>/<tag>` — no hardcoded digests.
 
-### Use a model already downloaded by the HuggingFace CLI
+### Adding a URL-downloaded variant
 
-The host's `/opt/hf/.cache/huggingface/` is mounted read-only at `/root/.cache/huggingface/`. Files downloaded via `huggingface-cli download <repo> <file>` or `hf download <repo> <file>` live at:
-
-```
-/root/.cache/huggingface/hub/models--<org>--<repo>/snapshots/<rev>/<file>
-```
-
-Point `MODEL_PATH` at the actual file path inside that snapshots directory.
+Use `MODEL_URL=<https://…>` instead of `MODEL_PATH`. llama.cpp downloads the file into the `llama-cpp-cache` volume on first start and reuses it after.
 
 ## Upgrade
 
