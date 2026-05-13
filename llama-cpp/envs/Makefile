@@ -49,7 +49,7 @@ sync:  ## Create a self-contained env file for each remote GGUF not yet present 
 	        printf '+ create %s — MODEL_PATH=/root/.cache/llama.cpp/%s\n' "$$file" "$$gguf"; \
 	        { \
 	            echo "# $$gguf · in docker volume $(LLAMACPP_CACHE_VOL) on the remote host."; \
-	            echo "# Self-contained — \`make up VARIANT=$$short-hf\` copies this to .env."; \
+	            echo "# Self-contained — \`make up ENV=$$short-hf\` copies this to .env."; \
 	            echo ""; \
 	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
 	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \
@@ -76,7 +76,7 @@ sync:  ## Create a self-contained env file for each remote GGUF not yet present 
 	        printf '+ create %s — MODEL_PATH=%s\n' "$$file" "$$in_container"; \
 	        { \
 	            echo "# $$base · in $(HF_CACHE_HOST) on the remote host."; \
-	            echo "# Self-contained — \`make up VARIANT=$$short-hfcache\` copies this to .env."; \
+	            echo "# Self-contained — \`make up ENV=$$short-hfcache\` copies this to .env."; \
 	            echo ""; \
 	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
 	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \

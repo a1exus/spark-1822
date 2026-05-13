@@ -1,6 +1,6 @@
 # vllm env variants
 
-One **self-contained** file per model. `make up VARIANT=<name>` copies `envs/<name>.env` over the project's `.env`, so plain `docker compose ps/logs/down/pull` work afterwards without needing extra `--env-file` flags.
+One **self-contained** file per model. `make up ENV=<name>` copies `envs/<name>.env` over the project's `.env`, so plain `docker compose ps/logs/down/pull` work afterwards without needing extra `--env-file` flags.
 
 Each variant here corresponds to a model **already downloaded** on this host (under `/opt/hf/.cache/huggingface/`). Adding a new variant means first `hf download <repo>` (or letting vLLM pull on first start), then dropping a new `<name>.env` here — or run `make sync` to do it automatically based on what's on the remote.
 
@@ -27,7 +27,7 @@ Gated models need `HF_TOKEN` set in `.env`.
 ```bash
 # from /opt/vllm:
 make list                                  # show available variants
-make up VARIANT=qwen3.5-27b-reasoning      # copies envs/<name>.env → .env, then up -d
+make up ENV=qwen3.5-27b-reasoning      # copies envs/<name>.env → .env, then up -d
 make logs                                  # plain docker compose, works because .env has everything
 make down
 ```

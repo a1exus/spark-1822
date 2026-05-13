@@ -36,7 +36,7 @@ sync:  ## Create a self-contained env file for each remote HF model not present 
 	        printf '+ create %s — %s\n' "$$file" "$$repo"; \
 	        { \
 	            echo "# $$repo · in $(HF_CACHE_HOST) on the remote host."; \
-	            echo "# Self-contained — \`make up VARIANT=$$short\` copies this to .env."; \
+	            echo "# Self-contained — \`make up ENV=$$short\` copies this to .env."; \
 	            echo ""; \
 	            echo "VLLM_TAG=v0.20.2"; \
 	            echo "HF_CACHE_HOST=$(HF_CACHE_HOST)"; \

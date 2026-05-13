@@ -22,7 +22,7 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ```bash
 docker compose -f /opt/open-webui/docker-compose.yml stop ollama
-cd /opt/llama-cpp && make up VARIANT=<name>
+cd /opt/llama-cpp && make up ENV=<name>
 ```
 
 To go back to ollama:
@@ -48,8 +48,8 @@ The entrypoint picks the model in this order: **`MODEL_PATH`** (any mounted file
 llama-cpp/
 ├── docker-compose.yml
 ├── entrypoint.sh        # resolves MODEL_OLLAMA → blob path; picks PATH/URL/OLLAMA
-├── Makefile             # make up VARIANT=<name> / list / down / logs / ps
-├── envs/                # one .env per model variant — pick one with `make up VARIANT=…`
+├── Makefile             # make up ENV=<name> / list / down / logs / ps
+├── envs/                # one .env per model variant — pick one with `make up ENV=…`
 │   ├── Makefile         # list / remote / sync / stale against the host's GGUF caches
 │   ├── README.md
 │   └── gpt-oss-safeguard-120b-hf.env
@@ -59,7 +59,7 @@ llama-cpp/
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up VARIANT=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
+Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
 
 `.env.example` is a reference template showing every variable; you don't need to edit it.
 
@@ -83,7 +83,7 @@ Prereq: `caddy/` is running and the shared `caddy` network exists.
 
 ```bash
 make list                                  # show available variants
-make up VARIANT=gpt-oss-safeguard-20b      # start that one
+make up ENV=gpt-oss-safeguard-20b      # start that one
 make logs                                  # tail
 ```
 
@@ -107,7 +107,7 @@ Once healthy, the server is at `https://llama.${CADDY_DOMAIN}`:
 
 ## Changing the model
 
-Switch to another variant with `make up VARIANT=<name>` (or repeat the `--env-file` invocation). The `llama-cpp-cache` volume preserves previously-downloaded URL-pulled models, so swapping back is fast.
+Switch to another variant with `make up ENV=<name>` (or repeat the `--env-file` invocation). The `llama-cpp-cache` volume preserves previously-downloaded URL-pulled models, so swapping back is fast.
 
 ### Adding a new variant from the HuggingFace CLI cache
 
@@ -149,7 +149,7 @@ Resolve the current `server-cuda` digest (snippet above), bump `LLAMACPP_TAG` in
 
 ```bash
 docker compose pull             # uses .env for LLAMACPP_TAG
-make up VARIANT=<name>          # restart on the new image
+make up ENV=<name>          # restart on the new image
 ```
 
 ## Logs

@@ -13,6 +13,10 @@
 **/docker-compose.override.yml
 docker-compose.override.yml
 
+# Per-stack env variants — generated locally via `envs/Makefile sync`.
+# The Makefile and README in envs/ stay committed; the .env files don't.
+**/envs/*.env
+
 # TLS material (Caddy local CA cert is host-specific; private keys never)
 *.crt
 *.key

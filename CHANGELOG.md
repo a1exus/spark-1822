@@ -9,14 +9,16 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- `make up VARIANT=<name>` → `make up ENV=<name>` (and matching renames in docs / `envs/Makefile sync` templates). The Make variable name now lines up with what the files are: ".env" files.
+- `.gitignore`: added `**/envs/*.env` so variant files become host-local artifacts. The committed templates are now just `envs/Makefile` and `envs/README.md`. Populate locally with `make sync` inside `envs/` (read-only against the remote; never downloads).
 - `.gitignore`: added `hf` to the vendor/host-shipped block (the host's HuggingFace cache lives at `/opt/hf/` and shouldn't end up in this repo if anyone mirrors it locally).
-- `llama-cpp/` + `vllm/` variant workflow: each `envs/<name>.env` is now **self-contained** (image pin + HF cache + HF token + model knobs in one file). `make up VARIANT=<name>` copies it to the project's `.env` instead of chaining `--env-file` flags. Fixes the situation where `docker compose ps/logs/down` failed after `make up` because plain compose only loads the default `.env`. `envs/Makefile sync` was updated to generate self-contained files.
+- `llama-cpp/` + `vllm/` variant workflow: each `envs/<name>.env` is now **self-contained** (image pin + HF cache + HF token + model knobs in one file). `make up ENV=<name>` copies it to the project's `.env` instead of chaining `--env-file` flags. Fixes the situation where `docker compose ps/logs/down` failed after `make up` because plain compose only loads the default `.env`. `envs/Makefile sync` was updated to generate self-contained files.
 
 ### Added
 
 - "Supported model formats" sections in `llama-cpp/README.md` and `vllm/README.md`: spell out what each engine loads (GGUF vs HF safetensors) and what it doesn't, with upstream links for architecture and quantization compatibility.
 - `vllm/envs/Makefile` and `llama-cpp/envs/Makefile`: `make list / remote / sync / stale` for keeping the local variant files aligned with what's already downloaded on `spark-1822.local`. Read-only against the remote; never overwrites; never downloads.
-- **One-env-per-model-variant** layout for `llama-cpp/` and `vllm/`. Each stack now has an `envs/<name>.env` directory of ready-made variant files plus a `Makefile` (`make list`, `make up VARIANT=<name>`, `make down`, `make logs`, `make ps`). The common `.env` keeps image-tag / HF-cache / HF-token; variant files set model + alias + context + GPU-layer knobs. `docker compose --env-file .env --env-file envs/<name>.env up -d` is the underlying invocation.
+- **One-env-per-model-variant** layout for `llama-cpp/` and `vllm/`. Each stack now has an `envs/<name>.env` directory of ready-made variant files plus a `Makefile` (`make list`, `make up ENV=<name>`, `make down`, `make logs`, `make ps`). The common `.env` keeps image-tag / HF-cache / HF-token; variant files set model + alias + context + GPU-layer knobs. `docker compose --env-file .env --env-file envs/<name>.env up -d` is the underlying invocation.
 - `llama-cpp/envs/`: HF-backed variants only — `gpt-oss-safeguard-120b-hf` (URL-pulled into `llama-cpp-cache`). HF-cache-backed variants can be added by pointing `MODEL_PATH` at a GGUF under `/root/.cache/huggingface/hub/.../`.
 - `vllm/envs/`: variants track what's actually downloaded under `/opt/hf/.cache/huggingface/` on the host: `gpt-oss-120b`, `gpt-oss-20b`, `qwen3.5-27b-reasoning`, `qwen3.6-27b`.
 

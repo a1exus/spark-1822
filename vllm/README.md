@@ -24,7 +24,7 @@ Single container on the shared `caddy` Docker network; no host port published. T
 ```bash
 # Switching from ollama to vllm:
 docker compose -f /opt/open-webui/docker-compose.yml stop ollama
-cd /opt/vllm && make up VARIANT=<name>
+cd /opt/vllm && make up ENV=<name>
 
 # Going back:
 cd /opt/vllm && make down
@@ -36,7 +36,7 @@ docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 vllm/
 ├── docker-compose.yml
-├── Makefile             # make up VARIANT=<name> / list / down / logs / ps
+├── Makefile             # make up ENV=<name> / list / down / logs / ps
 ├── envs/                # one .env per model variant
 │   ├── Makefile         # list / remote / sync / stale against the host's HF cache
 │   ├── README.md
@@ -50,7 +50,7 @@ vllm/
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up VARIANT=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
+Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
 
 `.env.example` is a reference template showing every variable; you don't need to edit it.
 
@@ -60,7 +60,7 @@ Prereq: `caddy/` running, shared `caddy` network exists.
 
 ```bash
 make list                                # show available variants
-make up VARIANT=qwen3.5-27b-reasoning    # start that one
+make up ENV=qwen3.5-27b-reasoning    # start that one
 make logs                                # tail
 ```
 
@@ -112,7 +112,7 @@ Bump `VLLM_TAG` in `.env`, then:
 
 ```bash
 docker compose pull             # uses .env for VLLM_TAG
-make up VARIANT=<name>          # restart on the new image
+make up ENV=<name>          # restart on the new image
 ```
 
 ## Logs
