@@ -17,10 +17,10 @@ Single container on the shared `caddy` Docker network; no host port published. T
 ```bash
 # Switching from ollama to vllm:
 docker compose -f /opt/open-webui/docker-compose.yml stop ollama
-docker compose -f /opt/vllm/docker-compose.yml up -d
+cd /opt/vllm && make up VARIANT=<name>
 
 # Going back:
-docker compose -f /opt/vllm/docker-compose.yml down
+cd /opt/vllm && make down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
@@ -104,20 +104,20 @@ The bind-mount at `${HF_CACHE_HOST}` is the standard HuggingFace cache. Anything
 Bump `VLLM_TAG` in `.env`, then:
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose pull             # uses .env for VLLM_TAG
+make up VARIANT=<name>          # restart on the new image
 ```
 
 ## Logs
 
 ```bash
-docker compose logs -f vllm
+make logs                       # tails vllm
 ```
 
 ## Uninstall
 
 ```bash
-docker compose down
+make down
 # HF cache is on the host (not in a Docker volume) — leave it alone unless you
 # also want to delete downloaded weights.
 ```

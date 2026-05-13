@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Changed
+
+- `.gitignore`: added `hf` to the vendor/host-shipped block (the host's HuggingFace cache lives at `/opt/hf/` and shouldn't end up in this repo if anyone mirrors it locally).
+
 ### Added
 
 - **One-env-per-model-variant** layout for `llama-cpp/` and `vllm/`. Each stack now has an `envs/<name>.env` directory of ready-made variant files plus a `Makefile` (`make list`, `make up VARIANT=<name>`, `make down`, `make logs`, `make ps`). The common `.env` keeps image-tag / HF-cache / HF-token; variant files set model + alias + context + GPU-layer knobs. `docker compose --env-file .env --env-file envs/<name>.env up -d` is the underlying invocation.

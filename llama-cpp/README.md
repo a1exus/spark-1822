@@ -14,13 +14,13 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ```bash
 docker compose -f /opt/open-webui/docker-compose.yml stop ollama
-docker compose -f /opt/llama-cpp/docker-compose.yml up -d
+cd /opt/llama-cpp && make up VARIANT=<name>
 ```
 
 To go back to ollama:
 
 ```bash
-docker compose -f /opt/llama-cpp/docker-compose.yml down
+cd /opt/llama-cpp && make down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
@@ -141,20 +141,20 @@ Point `MODEL_PATH` at the actual file path inside that snapshots directory.
 Resolve the current `server-cuda` digest (snippet above), bump `LLAMACPP_TAG` in `.env`, then:
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose pull             # uses .env for LLAMACPP_TAG
+make up VARIANT=<name>          # restart on the new image
 ```
 
 ## Logs
 
 ```bash
-docker compose logs -f llama-cpp
+make logs                       # tails llama-cpp
 ```
 
 ## Uninstall
 
 ```bash
-docker compose down
+make down
 docker volume rm llama-cpp-cache   # destroys cached model downloads
 ```
 

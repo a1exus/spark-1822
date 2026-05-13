@@ -35,11 +35,11 @@ Each component has its own `README.md` — start there for deploy / configure / 
 | Dir | What | Access |
 |---|---|---|
 | [`caddy/`](caddy/) | HTTPS reverse proxy, Caddy local CA | publishes `:80`/`:443` |
-| [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF, OpenAI-compatible API + web UI) | `https://llama.spark-1822.local` |
+| [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF, OpenAI-compatible API + web UI) — model variants under `envs/` | `https://llama.spark-1822.local` |
 | [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
 | [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
-| [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — **scaffolded, not yet smoke-tested on GB10** | `https://vllm.spark-1822.local` |
+| [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — model variants under `envs/`; **scaffolded, not yet smoke-tested on GB10** | `https://vllm.spark-1822.local` |
 | [`.github/`](.github/) | Trivy CI workflow (CVE / IaC / secret scans) | GitHub Actions |
 
 ## Host
@@ -81,6 +81,7 @@ ssh spark-1822.local "
 
 - `.env` files contain secrets and are **never** committed (see `.gitignore`).
 - Image tags are pinned to specific versions in `.env` (single source of truth) — no `:latest`.
+- Inference stacks (`llama-cpp/`, `vllm/`) use a one-env-per-model-variant layout: `envs/<name>.env` (committed, non-secret) holds model-specific knobs; the common `.env` holds image pin + HF cache + token. Switch with `make up VARIANT=<name>`.
 - Only Caddy publishes host ports (`80`, `443`); every other service is reachable only on the internal compose network or the shared `caddy` network.
 - `/opt/<stack>/` on the host is owned `root:root`. The only exception is each stack's `.env`, which is `root:docker 640` so the `docker`-group `alexus` user can read it (and run `docker compose` without sudo). Editing configs always requires `sudo`.
 
