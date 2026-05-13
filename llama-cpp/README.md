@@ -145,7 +145,7 @@ docker run --rm -v open-webui-ollama:/data:ro alpine \
 
 ### Use a model already downloaded by the HuggingFace CLI
 
-The host's `~/.cache/huggingface/` is mounted read-only at `/root/.cache/huggingface/`. Files downloaded via `huggingface-cli download <repo> <file>` or `hf download <repo> <file>` live at:
+The host's `/opt/hf/.cache/huggingface/` is mounted read-only at `/root/.cache/huggingface/`. Files downloaded via `huggingface-cli download <repo> <file>` or `hf download <repo> <file>` live at:
 
 ```
 /root/.cache/huggingface/hub/models--<org>--<repo>/snapshots/<rev>/<file>

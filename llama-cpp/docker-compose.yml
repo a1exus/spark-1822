@@ -19,7 +19,7 @@ services:
       - ollama-models:/ollama:ro
       # Reuse files already downloaded by the HuggingFace CLI on the host.
       # Layout: hub/models--<org>--<repo>/snapshots/<rev>/<file>
-      - ${HF_CACHE_HOST:-/home/alexus/.cache/huggingface}:/root/.cache/huggingface:ro
+      - ${HF_CACHE_HOST:-/opt/hf/.cache/huggingface}:/root/.cache/huggingface:ro
       # Launcher script picks MODEL_PATH or MODEL_URL.
       - ./entrypoint.sh:/usr/local/bin/llama-cpp-entrypoint:ro
     environment:
