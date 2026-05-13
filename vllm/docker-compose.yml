@@ -20,22 +20,17 @@ services:
       # HuggingFace CLI cache, shared with the host so existing downloads are
       # reused and new ones are visible outside the container.
       - ${HF_CACHE_HOST:-/opt/hf/.cache/huggingface}:/root/.cache/huggingface
+      # Launcher script builds the `vllm serve` argv from env vars.
+      - ./entrypoint.sh:/usr/local/bin/vllm-entrypoint:ro
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
       VLLM_USAGE_SOURCE: docker
-    command:
-      - "--model"
-      - "${VLLM_MODEL:?VLLM_MODEL must be set in .env}"
-      - "--served-model-name"
-      - "${VLLM_SERVED_NAME:-${VLLM_MODEL}}"
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "8000"
-      - "--gpu-memory-utilization"
-      - "${VLLM_GPU_MEM:-0.9}"
-      - "--max-model-len"
-      - "${VLLM_MAX_LEN:-8192}"
+      VLLM_MODEL: ${VLLM_MODEL:?VLLM_MODEL must be set in env file}
+      VLLM_SERVED_NAME: ${VLLM_SERVED_NAME:-}
+      VLLM_GPU_MEM: ${VLLM_GPU_MEM:-0.9}
+      VLLM_MAX_LEN: ${VLLM_MAX_LEN:-8192}
+    entrypoint: ["/usr/local/bin/vllm-entrypoint"]
+    command: []
     deploy:
       resources:
         reservations:

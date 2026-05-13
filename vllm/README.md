@@ -36,6 +36,7 @@ docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 vllm/
 ├── docker-compose.yml
+├── entrypoint.sh        # builds `vllm serve` argv from env; hosts the tool-call parser choice
 ├── Makefile             # make list / make up ENV=<name>
 ├── envs/                # one .env per model variant
 │   ├── Makefile         # list / remote / sync / stale against the host's HF cache
