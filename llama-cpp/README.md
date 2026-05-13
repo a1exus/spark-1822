@@ -14,7 +14,7 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ## Topology
 
-`llama-cpp` runs as a single container on the shared `caddy` Docker network. It connects only to Caddy; no host port is published.
+`llama-cpp` runs as a single container on the shared `caddy` Docker network. Caddy reaches it over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
 
 ### GPU exclusivity
 
@@ -48,18 +48,23 @@ The entrypoint picks the model in this order: **`MODEL_PATH`** (any mounted file
 llama-cpp/
 ├── docker-compose.yml
 ├── entrypoint.sh        # resolves MODEL_OLLAMA → blob path; picks PATH/URL/OLLAMA
-├── Makefile             # make up ENV=<name> / list / down / logs / ps
+├── Makefile             # make list / make up ENV=<name>
 ├── envs/                # one .env per model variant — pick one with `make up ENV=…`
 │   ├── Makefile         # list / remote / sync / stale against the host's GGUF caches
 │   ├── README.md
 │   └── gpt-oss-safeguard-120b-hf.env
-├── .env.example         # common settings (image tag, HF cache, HF token)
-└── .env                 # gitignored copy of the above
+└── .env.example         # reference template showing every variable
 ```
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
+Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written. For subsequent commands, pass the same `--env-file` to docker compose, or use plain `docker` against the container name:
+
+```bash
+docker compose --env-file envs/<name>.env ps
+docker logs -f llama-cpp
+docker stop llama-cpp
+```
 
 `.env.example` is a reference template showing every variable; you don't need to edit it.
 
@@ -75,7 +80,7 @@ curl -sI -H "Authorization: Bearer $TOK" \
     | grep -i docker-content-digest
 ```
 
-Set `LLAMACPP_TAG=server-cuda@<that-digest>` in `.env`.
+Set `LLAMACPP_TAG=server-cuda@<that-digest>` in the variant file (`envs/<name>.env`).
 
 ## Deploy
 
@@ -83,15 +88,14 @@ Prereq: `caddy/` is running and the shared `caddy` network exists.
 
 ```bash
 make list                                  # show available variants
-make up ENV=gpt-oss-safeguard-20b      # start that one
-make logs                                  # tail
+make up ENV=gpt-oss-safeguard-120b-hf      # start that one
+docker logs -f llama-cpp                   # tail (first run downloads the model)
 ```
 
 Equivalent without Make:
 
 ```bash
-cp envs/<variant>.env .env
-docker compose up -d
+docker compose --env-file envs/<variant>.env up -d
 ```
 
 Once healthy, the server is at `https://llama.${CADDY_DOMAIN}`:
@@ -107,7 +111,7 @@ Once healthy, the server is at `https://llama.${CADDY_DOMAIN}`:
 
 ## Changing the model
 
-Switch to another variant with `make up ENV=<name>` (or repeat the `--env-file` invocation). The `llama-cpp-cache` volume preserves previously-downloaded URL-pulled models, so swapping back is fast.
+Switch to another variant with `make up ENV=<name>` (or `docker compose --env-file envs/<name>.env up -d`). The `llama-cpp-cache` volume preserves previously-downloaded URL-pulled models, so swapping back is fast.
 
 ### Adding a new variant from the HuggingFace CLI cache
 
@@ -145,23 +149,24 @@ Use `MODEL_URL=<https://…>` instead of `MODEL_PATH`. llama.cpp downloads the f
 
 ## Upgrade
 
-Resolve the current `server-cuda` digest (snippet above), bump `LLAMACPP_TAG` in `.env`, then:
+Resolve the current `server-cuda` digest (snippet above), bump `LLAMACPP_TAG` in the variant file (`envs/<name>.env`), then:
 
 ```bash
-docker compose pull             # uses .env for LLAMACPP_TAG
-make up ENV=<name>          # restart on the new image
+docker compose --env-file envs/<name>.env pull   # resolve image tag from the variant
+make up ENV=<name>                                # restart on the new image
 ```
 
 ## Logs
 
 ```bash
-make logs                       # tails llama-cpp
+docker logs -f llama-cpp                           # plain docker, no env needed
+docker compose --env-file envs/<name>.env logs -f llama-cpp   # equivalent via compose
 ```
 
 ## Uninstall
 
 ```bash
-make down
+docker compose --env-file envs/<name>.env down
 docker volume rm llama-cpp-cache   # destroys cached model downloads
 ```
 

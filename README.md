@@ -81,8 +81,8 @@ ssh spark-1822.local "
 
 - `.env` files contain secrets and are **never** committed (see `.gitignore`).
 - Image tags are pinned to specific versions in `.env` (single source of truth) — no `:latest`.
-- Inference stacks (`llama-cpp/`, `vllm/`) use a one-env-per-model-variant layout: `envs/<name>.env` (committed, non-secret) holds model-specific knobs; the common `.env` holds image pin + HF cache + token. Switch with `make up ENV=<name>`.
-- Only Caddy publishes host ports (`80`, `443`); every other service is reachable only on the internal compose network or the shared `caddy` network.
+- Inference stacks (`llama-cpp/`, `vllm/`) use a one-env-per-model-variant layout. Each `envs/<name>.env` (host-local; gitignored) is **self-contained** — image pin + HF cache + HF token + model knobs in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written.
+- Only Caddy publishes host ports on `0.0.0.0` (`80`, `443`); LAN traffic always reaches services through it. Inference stacks (`llama-cpp/`, `vllm/`) additionally bind their API to `127.0.0.1` on the host for direct curl/benchmarks (loopback only — not LAN-reachable).
 - `/opt/<stack>/` on the host is owned `root:root`. The only exception is each stack's `.env`, which is `root:docker 640` so the `docker`-group `alexus` user can read it (and run `docker compose` without sudo). Editing configs always requires `sudo`.
 
 ## Changelog

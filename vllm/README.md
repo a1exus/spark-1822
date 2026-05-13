@@ -15,7 +15,7 @@ vLLM complements [`llama-cpp/`](../llama-cpp/): use llama.cpp for GGUF files (sm
 
 ## Topology
 
-Single container on the shared `caddy` Docker network; no host port published. The host's HuggingFace cache is bind-mounted read-write so vLLM and the `hf` CLI share the same downloads. Models come from HuggingFace by repo ID — vLLM loads safetensors directly.
+Single container on the shared `caddy` Docker network. Caddy reaches it over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8000` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8000 is taken. The host's HuggingFace cache is bind-mounted read-write so vLLM and the `hf` CLI share the same downloads. Models come from HuggingFace by repo ID — vLLM loads safetensors directly.
 
 ### GPU exclusivity
 
@@ -36,7 +36,7 @@ docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 vllm/
 ├── docker-compose.yml
-├── Makefile             # make up ENV=<name> / list / down / logs / ps
+├── Makefile             # make list / make up ENV=<name>
 ├── envs/                # one .env per model variant
 │   ├── Makefile         # list / remote / sync / stale against the host's HF cache
 │   ├── README.md
@@ -44,13 +44,18 @@ vllm/
 │   ├── gpt-oss-20b.env
 │   ├── qwen3.5-27b-reasoning.env
 │   └── qwen3.6-27b.env
-├── .env.example         # common settings (image tag, HF cache, HF token)
-└── .env                 # gitignored copy of the above
+└── .env.example         # reference template showing every variable
 ```
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` copies it over the project's `.env`, after which plain `docker compose ps / logs / down / pull` work without extra flags.
+Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written. For subsequent commands, pass the same `--env-file` to docker compose, or use plain `docker` against the container name:
+
+```bash
+docker compose --env-file envs/<name>.env ps
+docker logs -f vllm
+docker stop vllm
+```
 
 `.env.example` is a reference template showing every variable; you don't need to edit it.
 
@@ -60,16 +65,15 @@ Prereq: `caddy/` running, shared `caddy` network exists.
 
 ```bash
 make list                                # show available variants
-make up ENV=qwen3.5-27b-reasoning    # start that one
-make logs                                # tail
+make up ENV=qwen3.5-27b-reasoning        # start that one
+docker logs -f vllm                      # tail (first run downloads the model)
 ```
 
 Equivalent without Make:
 
 ```bash
-cp envs/<variant>.env .env
-docker compose up -d
-docker compose logs -f vllm        # first run: HF download
+docker compose --env-file envs/<variant>.env up -d
+docker logs -f vllm                      # first run: HF download
 ```
 
 Once healthy:
@@ -108,23 +112,24 @@ The bind-mount at `${HF_CACHE_HOST}` is the standard HuggingFace cache. Anything
 
 ## Upgrade
 
-Bump `VLLM_TAG` in `.env`, then:
+Bump `VLLM_TAG` in the variant file (`envs/<name>.env`), then:
 
 ```bash
-docker compose pull             # uses .env for VLLM_TAG
-make up ENV=<name>          # restart on the new image
+docker compose --env-file envs/<name>.env pull   # resolve image tag from the variant
+make up ENV=<name>                                # restart on the new image
 ```
 
 ## Logs
 
 ```bash
-make logs                       # tails vllm
+docker logs -f vllm                                # plain docker, no env needed
+docker compose --env-file envs/<name>.env logs -f vllm   # equivalent via compose
 ```
 
 ## Uninstall
 
 ```bash
-make down
+docker compose --env-file envs/<name>.env down
 # HF cache is on the host (not in a Docker volume) — leave it alone unless you
 # also want to delete downloaded weights.
 ```
