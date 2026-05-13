@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Changed
 
 - Renamed the shared external Docker network from `web` to `caddy` — the name reflects what the network actually is (the path Caddy proxies over). Every stack's compose updated. Migration on the host: `docker network create caddy`, `docker compose up -d` each stack, `docker network rm web`.
+- `llama-cpp/` switched to `restart: "no"` (was `unless-stopped`). The engine eagerly grabs ~65 GiB of VRAM and conflicts with Ollama; manual-start avoids racing each other on boot. The stack's README documents the switch-engine snippets. Same change applied to the (uncommitted) `vllm/` scaffold.
 
 ## [0.2.0] - 2026-05-12
 

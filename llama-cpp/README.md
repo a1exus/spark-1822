@@ -6,7 +6,25 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ## Topology
 
-`llama-cpp` runs as a single container on the shared `caddy` Docker network. It connects only to Caddy; no host port is published. Three model sources are wired up read-only into the container so existing downloads can be reused:
+`llama-cpp` runs as a single container on the shared `caddy` Docker network. It connects only to Caddy; no host port is published.
+
+### GPU exclusivity
+
+`-ngl 999` puts every model layer on GPU and keeps them resident (~65 GiB VRAM for the default model). The GB10 has 124 GiB total, but **Ollama lazily loads its own models on demand into the same VRAM**, so you can't have both engines active at once without one OOMing the other. Hence `restart: "no"` here — this stack is manual-start. To use llama.cpp:
+
+```bash
+docker compose -f /opt/open-webui/docker-compose.yml stop ollama
+docker compose -f /opt/llama-cpp/docker-compose.yml up -d
+```
+
+To go back to ollama:
+
+```bash
+docker compose -f /opt/llama-cpp/docker-compose.yml down
+docker compose -f /opt/open-webui/docker-compose.yml up -d
+```
+
+Three model sources are wired up read-only into the container so existing downloads can be reused:
 
 | In-container path | Source |
 |---|---|

@@ -4,7 +4,10 @@ services:
   llama-cpp:
     image: ghcr.io/ggml-org/llama.cpp:${LLAMACPP_TAG:?LLAMACPP_TAG must be set in .env}
     container_name: llama-cpp
-    restart: unless-stopped
+    # `no` (not unless-stopped) — GPU is exclusive with ollama / vllm. Start
+    # manually with `docker compose up -d` when you want this one active and
+    # `docker compose down` the other engines first.
+    restart: "no"
     networks:
       - caddy
     volumes:
