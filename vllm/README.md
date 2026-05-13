@@ -32,11 +32,8 @@ vllm/
 ├── Makefile             # make up VARIANT=<name> / list / down / logs / ps
 ├── envs/                # one .env per model variant
 │   ├── README.md
-│   ├── qwen2.5-7b.env
-│   ├── phi3.5-mini.env
-│   ├── qwen2.5-72b-awq.env
-│   ├── llama3.1-8b.env
-│   └── gpt-oss-120b.env
+│   ├── gpt-oss-120b.env
+│   └── qwen3.5-27b-reasoning.env
 ├── .env.example         # common settings (image tag, HF cache, HF token)
 └── .env                 # gitignored copy of the above
 ```
@@ -58,9 +55,9 @@ cp .env.example .env
 Prereq: `caddy/` running, shared `caddy` network exists.
 
 ```bash
-make list                          # show available variants
-make up VARIANT=qwen2.5-7b         # start that one
-make logs                          # tail
+make list                                # show available variants
+make up VARIANT=qwen3.5-27b-reasoning    # start that one
+make logs                                # tail
 ```
 
 Equivalent without Make:
@@ -76,24 +73,29 @@ Once healthy:
 curl -k https://vllm.spark-1822.local/v1/models
 curl -k https://vllm.spark-1822.local/v1/chat/completions \
     -H 'Content-Type: application/json' \
-    -d '{"model":"Qwen/Qwen2.5-7B-Instruct","messages":[{"role":"user","content":"hello"}]}'
+    -d '{"model":"qwen3.5-27b-reasoning","messages":[{"role":"user","content":"hello"}]}'
 ```
 
-## Picking a model
+## Adding a new variant
 
 vLLM works best with HF transformers-format models (safetensors). It does **not** load GGUF files like llama.cpp does — for GGUF, use the [`llama-cpp/`](../llama-cpp/) stack.
 
-Some that fit comfortably on the GB10's 124 GiB VRAM:
+To add a model, download it into the host's HF cache first (so the first `make up` doesn't hang on a long download):
 
-| Model | Approx VRAM | Notes |
-|---|---|---|
-| `Qwen/Qwen2.5-7B-Instruct` | ~15 GB | Open, strong general-purpose default |
-| `Qwen/Qwen2.5-72B-Instruct` | ~145 GB FP16 → use AWQ/INT4 quant | Larger; needs quantization |
-| `meta-llama/Llama-3.1-8B-Instruct` | ~16 GB | Gated — set `HF_TOKEN` |
-| `microsoft/Phi-3.5-mini-instruct` | ~8 GB | Small, fast |
-| `mistralai/Mistral-7B-Instruct-v0.3` | ~15 GB | Gated |
+```bash
+hf download <org>/<repo>            # lands in /opt/hf/.cache/huggingface/
+```
 
-For larger models use a quantized variant (e.g. `Qwen/Qwen2.5-72B-Instruct-AWQ`) — vLLM supports AWQ, GPTQ, FP8, BitsAndBytes, and a few others. See <https://docs.vllm.ai/en/latest/quantization/supported_hardware.html>.
+Then drop a new file at `envs/<name>.env`:
+
+```
+VLLM_MODEL=<org>/<repo>
+VLLM_SERVED_NAME=<friendly-name>
+VLLM_GPU_MEM=0.9
+VLLM_MAX_LEN=8192
+```
+
+For larger models, use a quantized variant (e.g. `Qwen/Qwen2.5-72B-Instruct-AWQ`) — vLLM supports AWQ, GPTQ, FP8, BitsAndBytes, and a few others. See <https://docs.vllm.ai/en/latest/quantization/supported_hardware.html>.
 
 ## Reusing existing HF downloads
 
