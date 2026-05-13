@@ -1,6 +1,13 @@
-# Secrets — never commit
-**/.env
+# Secrets — never commit. Match .env at any depth (top-level, any subdirectory,
+# any nested subdirectory). Three patterns belt-and-suspenders:
+#   .env          — matches a .env file in the repo root
+#   /**/.env      — matches a .env file at any nested path (Git ≥ 2.0)
+#   **/.env       — equivalent; some tooling prefers this form
+# Tracked .env-style auxiliary files (.env.example) are intentionally NOT
+# matched and stay committed.
 .env
+/**/.env
+**/.env
 
 # Local-only compose overrides
 **/docker-compose.override.yml
