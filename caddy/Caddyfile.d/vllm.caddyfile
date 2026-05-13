@@ -1,0 +1,12 @@
+vllm.{$CADDY_DOMAIN} {
+	tls internal
+
+	encode zstd gzip
+	import common_headers
+	import default_log
+
+	reverse_proxy vllm:8000 {
+		# vLLM streams tokens; disable proxy buffering.
+		flush_interval -1
+	}
+}

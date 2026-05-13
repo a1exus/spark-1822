@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **`vllm/`** stack (scaffolded; **not smoke-tested on GB10 yet**): [vLLM](https://github.com/vllm-project/vllm) inference server (image `vllm/vllm-openai:v0.20.2`, multi-arch arm64+amd64). OpenAI-compatible API fronted by Caddy at `https://vllm.${CADDY_DOMAIN}`. Shares the host's HuggingFace cache (`/opt/hf/.cache/huggingface`) with `llama-cpp/`. Complements `llama-cpp/` (vLLM for HF safetensors + high-throughput serving; llama.cpp for GGUF). `restart: "no"` for GPU exclusivity with Ollama / llama-cpp. Caveat: vLLM's published support matrix doesn't list compute capability 12.1 (GB10), so the first `docker compose up -d` may fail until upstream ships sm_120 kernels.
+- Trivy: `vllm/vllm-openai` added to the image-scan matrix; new `vllm_tag` output from `extract-tags`.
+
 ### Changed
 
 - Renamed the shared external Docker network from `web` to `caddy` — the name reflects what the network actually is (the path Caddy proxies over). Every stack's compose updated. Migration on the host: `docker network create caddy`, `docker compose up -d` each stack, `docker network rm web`.

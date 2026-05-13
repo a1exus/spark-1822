@@ -1,0 +1,58 @@
+name: vllm
+
+services:
+  vllm:
+    image: vllm/vllm-openai:${VLLM_TAG:?VLLM_TAG must be set in .env}
+    container_name: vllm
+    # `no` (not unless-stopped) — GPU is exclusive with ollama / llama-cpp.
+    # Start manually with `docker compose up -d` after stopping the others.
+    restart: "no"
+    networks:
+      - caddy
+    ipc: host                       # required for NCCL / Torch shared-memory paths
+    shm_size: "8gb"
+    volumes:
+      # HuggingFace CLI cache, shared with the host so existing downloads are
+      # reused and new ones are visible outside the container.
+      - ${HF_CACHE_HOST:-/opt/hf/.cache/huggingface}:/root/.cache/huggingface
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      VLLM_USAGE_SOURCE: docker
+    command:
+      - "--model"
+      - "${VLLM_MODEL:?VLLM_MODEL must be set in .env}"
+      - "--served-model-name"
+      - "${VLLM_SERVED_NAME:-${VLLM_MODEL}}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--gpu-memory-utilization"
+      - "${VLLM_GPU_MEM:-0.9}"
+      - "--max-model-len"
+      - "${VLLM_MAX_LEN:-8192}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 600s   # first run may need to download the model
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  caddy:
+    external: true
+    name: caddy
