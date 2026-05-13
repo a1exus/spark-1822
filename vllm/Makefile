@@ -1,8 +1,12 @@
 .DEFAULT_GOAL := help
 SHELL := /usr/bin/env bash
 .SHELLFLAGS := -e -o pipefail -c
+.SUFFIXES:
+.DELETE_ON_ERROR:
 
 ENV ?=
+ENV := $(strip $(ENV))
+SERVICE := vllm
 COMPOSE := docker compose -f docker-compose.yml
 
 .PHONY: help list up down logs ps
@@ -25,19 +29,19 @@ up:  ## Activate a variant (copies envs/<name>.env → .env) and start. Usage: m
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
 	    exit 64; \
 	fi
-	@if [[ ! -f envs/$(ENV).env ]]; then \
+	@if [[ ! -f "envs/$(ENV).env" ]]; then \
 	    echo "variant not found: envs/$(ENV).env" >&2; \
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
 	    exit 1; \
 	fi
-	cp envs/$(ENV).env .env
+	cp "envs/$(ENV).env" .env
 	$(COMPOSE) up -d
 
 down:  ## Stop vllm (volumes preserved).
 	$(COMPOSE) down
 
 logs:  ## Tail vllm logs.
-	$(COMPOSE) logs -f vllm
+	$(COMPOSE) logs -f $(SERVICE)
 
 ps:  ## Show container status.
 	$(COMPOSE) ps
