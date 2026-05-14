@@ -27,7 +27,7 @@ docker compose -f /opt/open-webui/docker-compose.yml stop ollama
 cd /opt/vllm && make up ENV=<name>
 
 # Going back:
-docker compose -f /opt/vllm/docker-compose.yml --env-file /opt/vllm/envs/<name>.env down
+docker compose -f /opt/vllm/docker-compose.yml down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
@@ -44,20 +44,23 @@ vllm/
 │   ├── gpt-oss-20b.env
 │   ├── qwen3.5-27b-reasoning.env
 │   └── qwen3.6-27b.env
-└── .env.example         # reference template showing every variable
+├── .env.example         # committed; copy to .env (`make up` auto-bootstraps)
+└── .env                  # gitignored placeholder so raw `docker compose` works
 ```
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written. For subsequent commands, pass the same `--env-file` to docker compose, or use plain `docker` against the container name:
+Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the running container gets the right variant's values.
+
+`.env` lives alongside as a placeholder file (auto-`cp .env.example .env` by `make up` on first run, gitignored thereafter). Its only purpose is to satisfy compose's `${VAR:?...}` required-var checks when you invoke raw `docker compose` without `--env-file` — for `ps / logs / down / pull` etc. that don't actually care about the model name:
 
 ```bash
-docker compose --env-file envs/<name>.env ps
-docker logs -f vllm
-docker stop vllm
+docker compose ps
+docker compose logs -f vllm
+docker compose down
 ```
 
-`.env.example` is a reference template showing every variable; you don't need to edit it.
+A `make up ENV=<name>` always overrides `.env` with the chosen variant, so the placeholder values never reach the running container.
 
 ## Deploy
 
@@ -73,7 +76,7 @@ Equivalent without Make:
 
 ```bash
 docker compose --env-file envs/<variant>.env up -d
-docker logs -f vllm                      # first run: HF download
+docker compose logs -f vllm              # first run: HF download
 ```
 
 Once healthy:
@@ -122,14 +125,13 @@ make up ENV=<name>                                # restart on the new image
 ## Logs
 
 ```bash
-docker logs -f vllm                                # plain docker, no env needed
-docker compose --env-file envs/<name>.env logs -f vllm   # equivalent via compose
+docker compose logs -f vllm
 ```
 
 ## Uninstall
 
 ```bash
-docker compose --env-file envs/<name>.env down
+docker compose down
 # HF cache is on the host (not in a Docker volume) — leave it alone unless you
 # also want to delete downloaded weights.
 ```

@@ -23,20 +23,16 @@ help:  ## Show this help.
 	@echo "  make hf-cache                   — list HF repos already downloaded in $(HF_CACHE)"
 	@echo "  make hf-sync                    — reconcile envs against the cache (create / restore / orphan to .bak)"
 	@echo
-	@echo "For management, invoke docker compose directly. The compose file"
-	@echo "uses required vars (e.g. \$${VLLM_TAG:?...}), so pass --env-file:"
-	@echo "  docker compose --env-file envs/<name>.env logs -f $(SERVICE)"
-	@echo "  docker compose --env-file envs/<name>.env ps"
-	@echo "  docker compose --env-file envs/<name>.env down"
-	@echo
-	@echo "Or use plain docker against the container name (no env needed):"
-	@echo "  docker logs -f $(SERVICE)"
-	@echo "  docker stop $(SERVICE)"
+	@echo "For management, raw docker compose works once .env exists"
+	@echo "(make up creates it on first run from .env.example):"
+	@echo "  docker compose logs -f $(SERVICE)"
+	@echo "  docker compose ps"
+	@echo "  docker compose down"
 
 list:  ## List available env variants under envs/.
 	@ls envs/*.env 2>/dev/null | sed 's|envs/||; s|\.env$$||' | sort
 
-up:  ## Start with the given variant. No .env is written. Usage: make up ENV=<name>
+up:  ## Start with the given variant. Usage: make up ENV=<name>
 	@if [[ -z "$(ENV)" ]]; then \
 	    echo "usage: make up ENV=<name>" >&2; \
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
@@ -46,6 +42,11 @@ up:  ## Start with the given variant. No .env is written. Usage: make up ENV=<na
 	    echo "variant not found: envs/$(ENV).env" >&2; \
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
 	    exit 1; \
+	fi
+	@if [[ ! -f .env ]]; then \
+	    echo "→ first-time setup: copying .env.example → .env (placeholder values"; \
+	    echo "  so raw \`docker compose ps/logs/down\` work without --env-file)"; \
+	    cp .env.example .env; \
 	fi
 	$(COMPOSE) --env-file "envs/$(ENV).env" up -d
 

@@ -28,7 +28,7 @@ cd /opt/llama-cpp && make up ENV=<name>
 To go back to ollama:
 
 ```bash
-docker compose -f /opt/llama-cpp/docker-compose.yml --env-file /opt/llama-cpp/envs/<name>.env down
+docker compose -f /opt/llama-cpp/docker-compose.yml down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
@@ -52,20 +52,23 @@ llama-cpp/
 ├── envs/                # one .env per model variant — pick one with `make up ENV=…`
 │   ├── README.md
 │   └── gpt-oss-safeguard-120b-hf.env
-└── .env.example         # reference template showing every variable
+├── .env.example         # committed; copy to .env (`make up` auto-bootstraps)
+└── .env                  # gitignored placeholder so raw `docker compose` works
 ```
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written. For subsequent commands, pass the same `--env-file` to docker compose, or use plain `docker` against the container name:
+Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the running container gets the right variant's values.
+
+`.env` lives alongside as a placeholder file (auto-`cp .env.example .env` by `make up` on first run, gitignored thereafter). Its only purpose is to satisfy compose's `${VAR:?...}` required-var checks when you invoke raw `docker compose` without `--env-file` — for `ps / logs / down / pull` etc. that don't actually care about the model path:
 
 ```bash
-docker compose --env-file envs/<name>.env ps
-docker logs -f llama-cpp
-docker stop llama-cpp
+docker compose ps
+docker compose logs -f llama-cpp
+docker compose down
 ```
 
-`.env.example` is a reference template showing every variable; you don't need to edit it.
+A `make up ENV=<name>` always overrides `.env` with the chosen variant, so the placeholder values never reach the running container.
 
 ### Pinning the image
 
@@ -158,14 +161,13 @@ make up ENV=<name>                                # restart on the new image
 ## Logs
 
 ```bash
-docker logs -f llama-cpp                           # plain docker, no env needed
-docker compose --env-file envs/<name>.env logs -f llama-cpp   # equivalent via compose
+docker compose logs -f llama-cpp
 ```
 
 ## Uninstall
 
 ```bash
-docker compose --env-file envs/<name>.env down
+docker compose down
 docker volume rm llama-cpp-cache   # destroys cached model downloads
 ```
 

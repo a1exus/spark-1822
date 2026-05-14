@@ -1,6 +1,6 @@
 # vllm env variants
 
-One **self-contained** file per model. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written. For management afterwards, pass the same `--env-file` to docker compose, or use plain `docker` against the container name.
+One **self-contained** file per model. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the chosen variant's values reach the running container. Raw `docker compose ps / logs / down` afterwards reads the parent dir's `.env` (auto-bootstrapped by `make up` from `.env.example`) — placeholder values that satisfy compose's required-var checks but never reach a real container.
 
 Each variant here corresponds to a model **already downloaded** on this host (under `/opt/hf/.cache/huggingface/`). Adding a new variant means first `hf download <repo>` (or letting vLLM pull on first start), then dropping a new `<name>.env` here — or run `make hf-sync` from the parent dir to do it automatically based on what's in the HF cache.
 
@@ -28,8 +28,8 @@ Gated models need `HF_TOKEN` set in the variant file (`envs/<name>.env`).
 # from /opt/vllm:
 make list                                  # show available variants
 make up ENV=qwen3.5-27b-reasoning          # docker compose --env-file envs/<name>.env up -d
-docker logs -f vllm                        # tail (plain docker — no env needed)
-docker compose --env-file envs/qwen3.5-27b-reasoning.env down
+docker compose logs -f vllm                # tail (reads .env placeholder, fine for logs)
+docker compose down
 ```
 
 ## Maintenance
