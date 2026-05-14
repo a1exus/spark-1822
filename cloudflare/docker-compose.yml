@@ -1,0 +1,39 @@
+name: cloudflare
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:${CLOUDFLARED_TAG:?CLOUDFLARED_TAG must be set in .env}
+    container_name: cloudflared
+    restart: unless-stopped
+    # Token-driven tunnel — all routing config lives in the Cloudflare
+    # dashboard (Zero Trust → Networks → Tunnels → <tunnel> → Public
+    # Hostnames). The connector daemon just opens an outbound connection
+    # to Cloudflare's edge and serves whatever the dashboard says to.
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --metrics
+      - 0.0.0.0:2000          # /ready endpoint for the healthcheck
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set in .env}
+    networks:
+      - traefik                 # so origin URLs like http://traefik:80 resolve
+    healthcheck:
+      test: ["CMD", "cloudflared", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik:
+    external: true
+    name: traefik

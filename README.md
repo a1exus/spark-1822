@@ -22,6 +22,7 @@ Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `s
 .
 ├── traefik/       # HTTPS reverse proxy — primary (Traefik, docker-label-driven)
 ├── caddy/         # HTTPS reverse proxy — backup (Caddy, Caddyfile-driven); pick one or the other
+├── cloudflare/    # Cloudflare Tunnel connector — public ingress without opening inbound ports
 ├── llama-cpp/     # llama.cpp server (GGUF, GPU on GB10 via CUDA)
 ├── mdns/          # systemd helper publishing subdomain mDNS aliases
 ├── netdata/       # Real-time host + container observability
@@ -41,6 +42,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 |---|---|---|
 | [`traefik/`](traefik/) | HTTPS reverse proxy (primary), docker-label-driven, wildcard cert signed by Caddy's root | publishes `:80`/`:443` (when running) |
 | [`caddy/`](caddy/) | HTTPS reverse proxy (backup), Caddyfile-driven, owns the internal CA | publishes `:80`/`:443` (when running — pick caddy or traefik, not both) |
+| [`cloudflare/`](cloudflare/) | Cloudflare Tunnel connector — outbound-only public ingress | configurable per-hostname in the CF dashboard |
 | [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF, OpenAI-compatible API + web UI) — model variants under `envs/` | `https://llama.spark-1822.local` |
 | [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
