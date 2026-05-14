@@ -4,51 +4,62 @@
   <img src="sparky.svg" alt="sparky" width="220" height="260">
 </p>
 
-Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `spark-1822` (Ubuntu, aarch64, GB10 GPU). Traefik (primary) / Caddy (backup) HTTPS reverse proxies fronting Open WebUI + Ollama, llama.cpp, and vLLM inference stacks; Netdata for observability; Cloudflare Tunnel for outbound-only public ingress; mDNS aliases on the host; Trivy CI for image / IaC / secret scanning.
+Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `spark-1822` — a single-box, self-hosted LLM setup:
 
-## Contents
+- **vLLM** and **llama.cpp** for inference (HF safetensors and GGUF respectively, both GPU-accelerated on the GB10).
+- **Open WebUI + Ollama** for the chat UI.
+- **Traefik** (primary, docker-label-driven) or **Caddy** (backup, Caddyfile-driven) as the HTTPS reverse proxy in front of everything — pick one at a time.
+- **Cloudflare Tunnel** for outbound-only public ingress (no inbound ports on the host).
+- **Netdata** for real-time observability.
+- **mDNS** helper publishing `<sub>.spark-1822.local` aliases on the LAN.
+- **Trivy** + **Dependabot** keep the supply chain honest in CI.
 
-- [Layout](#layout)
-- [Components](#components)
-- [Host](#host)
-- [One-time setup](#one-time-setup)
-- [Deploy workflow](#deploy-workflow)
-- [Conventions](#conventions)
-- [Changelog](#changelog)
+## Topology
+
+Two ingress paths into the same backends:
+
+```
+LAN client      ──(mDNS *.spark-1822.local)──>  traefik :80/:443  ──>  backend
+public client   ──(DNS, Cloudflare edge)──>  cloudflared ──>  traefik :80  ──>  backend
+```
+
+Backends (`vllm`, `llama-cpp`, `open-webui`, `ollama`, `netdata`) all sit on a single shared Docker network named `traefik` — defined by the `traefik/` stack, joined as `external: true` by everyone else. The active proxy and the tunnel connector each attach to the same network and dial container names directly.
+
+TLS comes from three different roots: Traefik and Caddy each mint their own internal CA (clients install the corresponding `*-root.crt` once); Cloudflare provides publicly-trusted certs at its edge for the tunnel hostnames.
 
 ## Layout
 
 ```
 .
-├── traefik/       # HTTPS reverse proxy — primary (Traefik, docker-label-driven)
-├── caddy/         # HTTPS reverse proxy — backup (Caddy, Caddyfile-driven); pick one or the other
-├── cloudflare/    # Cloudflare Tunnel connector — public ingress without opening inbound ports
-├── llama-cpp/     # llama.cpp server (GGUF, GPU on GB10 via CUDA)
-├── mdns/          # systemd helper publishing subdomain mDNS aliases
-├── netdata/       # Real-time host + container observability
-├── open-webui/    # Open WebUI + Ollama (LLM chat UI)
+├── traefik/       # HTTPS reverse proxy — primary (docker-label-driven)
+├── caddy/         # HTTPS reverse proxy — backup (Caddyfile-driven)
+├── cloudflare/    # Cloudflare Tunnel connector — public ingress
 ├── vllm/          # vLLM inference server (HF safetensors)
-├── .github/       # CI: Trivy security scanning
+├── llama-cpp/     # llama.cpp inference server (GGUF)
+├── open-webui/    # Open WebUI + Ollama (chat UI)
+├── netdata/       # Real-time observability
+├── mdns/          # Host-side mDNS aliases helper
+├── .github/       # CI: Trivy workflow + Dependabot config
+├── sparky.svg     # Project logo (AI self-portrait)
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md
 ```
 
-Each component has its own `README.md` — start there for deploy / configure / upgrade details.
+Each stack has its own `README.md` — start there for deploy / configure / upgrade details.
 
 ## Components
 
-| Dir | What | Access |
+| Stack | Role | URL on LAN |
 |---|---|---|
-| [`traefik/`](traefik/) | HTTPS reverse proxy (primary), docker-label-driven, wildcard cert signed by Caddy's root | publishes `:80`/`:443` (when running) |
-| [`caddy/`](caddy/) | HTTPS reverse proxy (backup), Caddyfile-driven, owns the internal CA | publishes `:80`/`:443` (when running — pick caddy or traefik, not both) |
+| [`traefik/`](traefik/) | HTTPS reverse proxy (primary), docker-label-driven, mints its own internal CA | publishes `:80`/`:443` |
+| [`caddy/`](caddy/) | HTTPS reverse proxy (backup), Caddyfile-driven, mints its own internal CA | publishes `:80`/`:443` (pick caddy or traefik, not both) |
 | [`cloudflare/`](cloudflare/) | Cloudflare Tunnel connector — outbound-only public ingress | configurable per-hostname in the CF dashboard |
-| [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF, OpenAI-compatible API + web UI) — model variants under `envs/` | `https://llama.spark-1822.local` |
-| [`mdns/`](mdns/) | Host systemd template that publishes `<sub>.spark-1822.local` mDNS aliases | host-level |
+| [`vllm/`](vllm/) | vLLM inference server (HF safetensors), tool-calling enabled (`qwen3_xml`) | `https://vllm.spark-1822.local` |
+| [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF), OpenAI-compatible API + web UI | `https://llama.spark-1822.local` |
+| [`open-webui/`](open-webui/) | Open WebUI + Ollama (GPU on Ollama only) | `https://open-webui.spark-1822.local`, `https://ollama.spark-1822.local` |
 | [`netdata/`](netdata/) | Real-time host + container telemetry | `https://netdata.spark-1822.local` |
-| [`open-webui/`](open-webui/) | Open WebUI + Ollama, GPU on Ollama only | `https://open-webui.spark-1822.local` (UI), `https://ollama.spark-1822.local` (Ollama API) |
-| [`vllm/`](vllm/) | vLLM inference server (HF safetensors) — model variants under `envs/`; OpenAI tool-calling enabled (`qwen3_xml` parser) | `https://vllm.spark-1822.local` |
-| [`.github/`](.github/) | Trivy CI workflow (CVE / IaC / secret scans) | GitHub Actions |
+| [`mdns/`](mdns/) | Host systemd template publishing `<sub>.spark-1822.local` mDNS aliases | host-level |
 
 ## Host
 
@@ -57,18 +68,57 @@ Each component has its own `README.md` — start there for deploy / configure / 
 | Hardware | [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) |
 | Hostname | `spark-1822.local` |
 | OS | Ubuntu (kernel `6.17.0-nvidia`), aarch64 |
-| GPU | NVIDIA GB10 |
+| GPU | NVIDIA GB10 (compute capability 12.1, 124 GiB VRAM) |
 | Docker | 29.x + Compose v2 |
 | GPU runtime | `nvidia-container-toolkit` 1.19 (CDI mode) |
 
-## One-time setup
+## First-time setup
 
-```bash
-# On the host:
-cd /opt/mdns && make install             # mDNS alias helper (see mdns/README.md)
-```
+On a fresh host, in order:
 
-Then deploy each stack per its own README, in order: `traefik/` first (it creates the shared `traefik` Docker network that every other stack joins as external), then the rest.
+1. **Install the mDNS helper** (host-side; publishes `<sub>.spark-1822.local` aliases):
+
+   ```bash
+   cd /opt/mdns && make install
+   ```
+
+2. **Bring up the primary proxy** — this also creates the shared `traefik` Docker network everything else joins:
+
+   ```bash
+   cd /opt/traefik
+   cp .env.example .env             # then set TRAEFIK_TAG
+   make ca-cert                     # one-time: mint Traefik's internal root CA
+   make wildcard-cert               # mint the wildcard leaf signed by that root
+   docker compose up -d
+   ```
+
+   Install `traefik/certs/traefik-root.crt` on each client that should trust the host's LAN URLs (per-OS install table in [`traefik/README.md`](traefik/README.md)).
+
+3. **Publish a mDNS alias for each subdomain** you'll expose:
+
+   ```bash
+   cd /opt/mdns
+   for a in traefik vllm llama ollama open-webui netdata; do make add ALIAS=$a; done
+   ```
+
+4. **Bring up the services** — each one attaches to the `traefik` network and Traefik auto-routes via the `traefik.*` labels in its compose:
+
+   ```bash
+   cd /opt/open-webui && cp .env.example .env && docker compose up -d
+   cd /opt/netdata    && cp .env.example .env && docker compose up -d
+   cd /opt/vllm       && make up ENV=<variant>      # see vllm/envs/
+   cd /opt/llama-cpp  && make up ENV=<variant>      # see llama-cpp/envs/
+   ```
+
+5. **(Optional) Public ingress via Cloudflare Tunnel** — only if you want internet-reachable URLs:
+
+   ```bash
+   cd /opt/cloudflare
+   cp .env.example .env             # paste CLOUDFLARE_TUNNEL_TOKEN from the CF dashboard
+   docker compose up -d
+   ```
+
+   Then configure Public Hostnames in the Cloudflare dashboard so they forward to `http://traefik:80` with the matching internal Host header (recipe in [`cloudflare/README.md`](cloudflare/README.md)).
 
 ## Deploy workflow
 
@@ -80,20 +130,26 @@ ssh spark-1822.local 'sudo git -C /opt pull --ff-only'
 
 After the pull, apply the change in the relevant stack (each stack's README has details):
 
-- **Inference stacks** (`vllm/`, `llama-cpp/`) — `cd /opt/<stack> && make up ENV=<variant>` to (re)start with a variant; `docker compose --env-file envs/<variant>.env down` to stop. The `envs/*.env` variants are host-local (gitignored) — manage them with `make hf-sync` (creates from the local HF cache).
-- **Caddy** — `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` for a hot reload after editing a `Caddyfile.d/*.caddyfile`; full restart only if you changed the top-level `Caddyfile` or compose.
-- **Other stacks** (`open-webui/`, `netdata/`, `mdns/`) — `cd /opt/<name> && docker compose up -d` (or the stack's `make` target for `mdns/`).
+- **Inference stacks** (`vllm/`, `llama-cpp/`) — `cd /opt/<stack> && make up ENV=<variant>` to (re)start with a variant.
+- **Traefik** — routing changes via Docker labels or `dynamic/*.yml` files are hot-reloaded; `docker compose restart traefik` only if `traefik.yml` itself changed.
+- **Caddy** — `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` for a hot reload after editing a `Caddyfile.d/*.caddyfile`.
+- **Other stacks** — `cd /opt/<name> && docker compose up -d`.
 
-Host-local files outside git stay put across pulls — each stack's `.env` (secrets), inference `envs/*.env` variants, and `caddy/*.crt` are all gitignored.
+Host-local files outside git stay put across pulls — each stack's `.env` (secrets), inference `envs/*.env` variants, TLS material (`*.crt`/`*.key`), and `*.bak` backups are all gitignored.
 
 ## Conventions
 
-- `.env` files contain secrets and are **never** committed (see `.gitignore`).
-- Image tags are pinned to specific versions in `.env` (single source of truth) — no `:latest`.
-- Inference stacks (`llama-cpp/`, `vllm/`) use a one-env-per-model-variant layout. Each `envs/<name>.env` (host-local; gitignored) is **self-contained** — image pin + HF cache + HF token + model knobs in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` directly — no rolling `.env` is written.
-- Only Caddy publishes host ports on `0.0.0.0` (`80`, `443`); LAN traffic always reaches services through it. Inference stacks (`llama-cpp/`, `vllm/`) additionally bind their API to `127.0.0.1` on the host for direct curl/benchmarks (loopback only — not LAN-reachable).
-- `/opt/<stack>/` on the host is owned `root:root`. The only exception is each stack's `.env`, which is `root:docker 640` so the `docker`-group `alexus` user can read it (and run `docker compose` without sudo). Editing configs always requires `sudo`.
+- **One reverse proxy at a time.** Traefik and Caddy both bind `:80`/`:443` — pick one. The other stack's compose files coexist on disk so switching is `docker compose down` + `docker compose up -d`. Services define `traefik.*` labels *and* sit in Caddy's `Caddyfile.d/`, so the same compose runs under either proxy.
+- **Image tags pinned** to specific versions in `.env` files (single source of truth, validated by CI) — never `:latest`. Immutable per-build tags preferred (e.g. `server-cuda-b9151`); digest pins when only a floating tag is published.
+- **Inference config split** by scope. `<stack>/.env` carries host-wide values (image pin, HF cache path, HF token, default knobs); `<stack>/envs/<name>.env` carries just the model selection plus per-variant overrides. `make up ENV=<name>` chains both via `docker compose --env-file .env --env-file envs/<name>.env up -d`. Both files are gitignored — the templates live next to them as `.env.example`.
+- **Loopback ports on inference stacks.** `vllm/` and `llama-cpp/` additionally bind their API to `127.0.0.1` on the host for direct curl / benchmarking — LAN traffic still flows through the proxy.
+- **Permissions.** `/opt/<stack>/` is `root:root`. The `.env` files are `root:docker 640` so the `docker`-group user reads them and runs compose without sudo. Editing configs requires `sudo`.
+- **Supply chain.** Every third-party Docker image is pinned by tag (or digest where applicable) in `.env.example`. Every GitHub Action is pinned by commit SHA. Trivy scans push / PR / weekly cron; Dependabot keeps the SHA pins fresh with a weekly grouped PR.
 
-## Changelog
+## Repo housekeeping
 
-See [`CHANGELOG.md`](CHANGELOG.md) — [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, [SemVer](https://semver.org/spec/v2.0.0.html) versioning.
+- [`CHANGELOG.md`](CHANGELOG.md) — [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, [SemVer](https://semver.org/spec/v2.0.0.html) versioning.
+- [`.github/workflows/trivy.yml`](.github/workflows/trivy.yml) — image CVE scans (HIGH+CRITICAL, fixed-only), IaC config scan, filesystem secret scan. Doc: [`.github/workflows/trivy.md`](.github/workflows/trivy.md).
+- [`.github/dependabot.yml`](.github/dependabot.yml) — weekly grouped PR to bump pinned GitHub Action SHAs.
+- [`LICENSE`](LICENSE) — MIT.
+- [`sparky.svg`](sparky.svg) — project mascot. Drawn by the AI that helped build this repo, as a self-portrait.

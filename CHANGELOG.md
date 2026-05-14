@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `cloudflare/.env.example`: bump `CLOUDFLARED_TAG` from `2025.5.0` → `2026.5.0`.
 - Trivy: every job now declares `timeout-minutes` (`5` / `20` / `10` / `10` for `extract-tags` / `image-scan` / `config-scan` / `secret-scan`) so a stuck step can't burn the runner's 6-hour default.
 - Top-level `README.md` intro paragraph + GitHub repo "About" sidebar + topics: refreshed to reflect the new shape (Traefik primary, Cloudflare Tunnel called out, homepage URL cleared, new topics `traefik` / `cloudflare-tunnel`).
+- Top-level `README.md`: full rewrite to fix stale claims (Traefik's wildcard is signed by Traefik's own CA, not Caddy's; both proxies — not just Caddy — publish `:80`/`:443` when they're the active one) and fill gaps (Cloudflare Tunnel's ingress path, `sparky.svg`, `.github/dependabot.yml`, the actual on-first-boot sequence). New sections: a short two-line `Topology` showing the two ingress paths (LAN via mDNS, public via CF Tunnel), an ordered `First-time setup` walkthrough, and `Repo housekeeping` listing CI / Dependabot / LICENSE / mascot.
 
 ### Removed
 
