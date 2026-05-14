@@ -28,22 +28,19 @@ docker compose --env-file envs/gpt-oss-safeguard-120b-hf.env down
 
 ## Maintenance
 
-This directory has its own `Makefile` for keeping the variant list in sync with what's actually on this host. It is **read-only against the caches** and **never downloads** anything itself.
+Maintenance lives in the parent `Makefile` (`../Makefile`). It is **read-only against the caches** and **never downloads** anything itself.
 
 ```bash
-make list       # local variants
-make cache      # GGUF files in this host's caches (llama-cpp-cache volume + HF cache)
-make sync       # reconcile envs against the caches:
+make hf-cache   # GGUF files in this host's caches (llama-cpp-cache volume + HF cache)
+make hf-sync    # reconcile envs/ against the caches:
                 #   + create envs for newly cached GGUFs (one per cache location)
                 #   ↩ restore <name>.env from <name>.env.bak when a GGUF returns
                 #   → move <name>.env to <name>.env.bak when its GGUF leaves
 ```
 
-These targets are also exposed at the parent dir as `make hf-cache` / `make hf-sync` for convenience.
+`hf-sync` only orphans envs whose `MODEL_PATH=` points at a GGUF file (it can check existence). `MODEL_URL=` and `MODEL_OLLAMA=` envs are not validated and are never orphaned automatically — leave them alone or remove them manually.
 
-`sync` only orphans envs whose `MODEL_PATH=` points at a GGUF file (it can check existence). `MODEL_URL=` and `MODEL_OLLAMA=` envs are not validated and are never orphaned automatically — leave them alone or remove them manually.
-
-`*.env.bak` is gitignored — host-local artifact of the sync's orphaning path. A subsequent `make sync` will restore the file if the corresponding GGUF reappears in the cache, preserving any hand edits you'd made.
+`*.env.bak` is gitignored — host-local artifact of the sync's orphaning path. A subsequent `make hf-sync` will restore the file if the corresponding GGUF reappears in the cache, preserving any hand edits you'd made.
 
 ## See also
 

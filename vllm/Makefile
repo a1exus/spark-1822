@@ -8,6 +8,7 @@ ENV ?=
 ENV := $(strip $(ENV))
 SERVICE := vllm
 COMPOSE := docker compose -f docker-compose.yml
+HF_CACHE ?= /opt/hf/.cache/huggingface
 
 .PHONY: help list up hf-cache hf-sync
 
@@ -18,9 +19,9 @@ help:  ## Show this help.
 	@echo "  make list                       — show available env variants"
 	@echo "  make up ENV=<name>              — start $(SERVICE) with that env"
 	@echo
-	@echo "HF-cache maintenance (forwards to envs/Makefile):"
-	@echo "  make hf-cache                   — list HF repos already downloaded in the HF cache"
-	@echo "  make hf-sync                    — reconcile envs against the HF cache (create / restore / orphan to .bak)"
+	@echo "HF-cache maintenance:"
+	@echo "  make hf-cache                   — list HF repos already downloaded in $(HF_CACHE)"
+	@echo "  make hf-sync                    — reconcile envs against the cache (create / restore / orphan to .bak)"
 	@echo
 	@echo "For management, invoke docker compose directly. The compose file"
 	@echo "uses required vars (e.g. \$${VLLM_TAG:?...}), so pass --env-file:"
@@ -49,7 +50,52 @@ up:  ## Start with the given variant. No .env is written. Usage: make up ENV=<na
 	$(COMPOSE) --env-file "envs/$(ENV).env" up -d
 
 hf-cache:  ## List HF repos already downloaded in this host's HF cache.
-	@$(MAKE) -C envs --no-print-directory cache
+	@ls -d $(HF_CACHE)/hub/models--* 2>/dev/null \
+	    | sed 's|.*/models--||; s|--|/|' | sort
 
-hf-sync:  ## Reconcile envs against the HF cache (create / restore from .bak / orphan to .bak).
-	@$(MAKE) -C envs --no-print-directory sync
+hf-sync:  ## Reconcile envs against the HF cache: create new, restore from .bak, orphan to .bak.
+	@cached=$$(ls -d $(HF_CACHE)/hub/models--* 2>/dev/null | sed 's|.*/models--||; s|--|/|'); \
+	if [[ -z "$$cached" ]]; then echo "no models in $(HF_CACHE)/hub/"; exit 0; fi; \
+	cd envs; \
+	created=0; restored=0; orphaned=0; \
+	while read -r repo; do \
+	    [[ -z "$$repo" ]] && continue; \
+	    short=$$(echo "$$repo" | cut -d/ -f2 | tr 'A-Z' 'a-z'); \
+	    file="$$short.env"; \
+	    if grep -lE "^VLLM_MODEL=$$repo[[:space:]]*\$$" *.env 2>/dev/null | head -1 >/dev/null; then \
+	        :; \
+	    elif [[ -f "$$file.bak" ]] && grep -qE "^VLLM_MODEL=$$repo[[:space:]]*\$$" "$$file.bak"; then \
+	        printf '↩ restore %s ← %s.bak\n' "$$file" "$$file"; \
+	        mv "$$file.bak" "$$file"; \
+	        restored=$$((restored + 1)); \
+	    elif [[ -f "$$file" ]]; then \
+	        echo "  name clash: $$file already exists but points elsewhere — leave alone, rename manually if needed"; \
+	    else \
+	        printf '+ create  %s — %s\n' "$$file" "$$repo"; \
+	        { \
+	            echo "# $$repo · in $(HF_CACHE) on this host."; \
+	            echo "# Self-contained — \`make up ENV=$$short\` uses this directly."; \
+	            echo ""; \
+	            echo "VLLM_TAG=v0.20.2"; \
+	            echo "HF_CACHE_HOST=$(HF_CACHE)"; \
+	            echo "HF_TOKEN="; \
+	            echo ""; \
+	            echo "VLLM_MODEL=$$repo"; \
+	            echo "VLLM_SERVED_NAME=$$short"; \
+	            echo "VLLM_GPU_MEM=0.9"; \
+	            echo "VLLM_MAX_LEN=8192"; \
+	        } > "$$file"; \
+	        created=$$((created + 1)); \
+	    fi; \
+	done <<<"$$cached"; \
+	for f in *.env; do \
+	    [[ -f "$$f" ]] || continue; \
+	    repo=$$(grep -E '^VLLM_MODEL=' "$$f" | head -1 | cut -d= -f2-); \
+	    [[ -z "$$repo" ]] && continue; \
+	    if ! grep -qFx "$$repo" <<<"$$cached"; then \
+	        printf '→ orphan  %s → %s.bak\n' "$$f" "$$f"; \
+	        mv "$$f" "$$f.bak"; \
+	        orphaned=$$((orphaned + 1)); \
+	    fi; \
+	done; \
+	echo "summary — $$created created, $$restored restored, $$orphaned orphaned"

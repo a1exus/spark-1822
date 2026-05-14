@@ -48,9 +48,8 @@ The entrypoint picks the model in this order: **`MODEL_PATH`** (any mounted file
 llama-cpp/
 ├── docker-compose.yml
 ├── entrypoint.sh        # resolves MODEL_OLLAMA → blob path; picks PATH/URL/OLLAMA
-├── Makefile             # make list / make up ENV=<name>
+├── Makefile             # make list / make up ENV=<name> / make hf-cache / make hf-sync
 ├── envs/                # one .env per model variant — pick one with `make up ENV=…`
-│   ├── Makefile         # list / remote / sync / stale against the host's GGUF caches
 │   ├── README.md
 │   └── gpt-oss-safeguard-120b-hf.env
 └── .env.example         # reference template showing every variable
