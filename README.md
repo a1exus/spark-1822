@@ -65,17 +65,19 @@ Then deploy each stack per its own README, in order: `caddy/` first, then everyt
 
 ## Deploy workflow
 
-Files in this repo correspond to `/opt/<name>/` on the host. Edit here, then sync:
+`/opt` on the host **is** a checkout of this repo — every stack lives in place at `/opt/<name>/`. Edit locally, commit, push; then pull on the host:
 
 ```bash
-ssh spark-1822.local "rm -rf /tmp/<name>-stage && mkdir -p /tmp/<name>-stage"
-scp <name>/* spark-1822.local:/tmp/<name>-stage/
-ssh spark-1822.local "
-  sudo install -o root -g root   -m 644 /tmp/<name>-stage/<file> /opt/<name>/<file>
-  sudo install -o root -g docker -m 640 /tmp/<name>-stage/.env   /opt/<name>/.env
-  docker compose -f /opt/<name>/docker-compose.yml up -d
-"
+ssh spark-1822.local 'sudo git -C /opt pull --ff-only'
 ```
+
+After the pull, apply the change in the relevant stack (each stack's README has details):
+
+- **Inference stacks** (`vllm/`, `llama-cpp/`) — `cd /opt/<stack> && make up ENV=<variant>` to (re)start with a variant; `docker compose --env-file envs/<variant>.env down` to stop. The `envs/*.env` variants are host-local (gitignored) — manage them with `make hf-sync` (creates from the local HF cache).
+- **Caddy** — `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` for a hot reload after editing a `Caddyfile.d/*.caddyfile`; full restart only if you changed the top-level `Caddyfile` or compose.
+- **Other stacks** (`open-webui/`, `netdata/`, `mdns/`) — `cd /opt/<name> && docker compose up -d` (or the stack's `make` target for `mdns/`).
+
+Host-local files outside git stay put across pulls — each stack's `.env` (secrets), inference `envs/*.env` variants, and `caddy/*.crt` are all gitignored.
 
 ## Conventions
 
