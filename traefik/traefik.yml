@@ -41,7 +41,7 @@ providers:
   # under either proxy.
   docker:
     exposedByDefault: false
-    network: caddy      # always dial upstreams over the shared caddy network
+    network: traefik    # always dial upstreams over the shared traefik network
     watch: true
 
   # Secondary: anything that can't be label-driven — host-network

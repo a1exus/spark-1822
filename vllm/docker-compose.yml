@@ -8,20 +8,21 @@ services:
     # Start manually with `docker compose up -d` after stopping the others.
     restart: "no"
     networks:
-      - caddy
-    # Loopback-only bind: Caddy reaches the container via the `caddy` docker
-    # network; this port is for direct host-side curl/benchmarks, not the
-    # outside world. Override HOST_PORT in .env if 8000 is taken.
+      - traefik
+    # Loopback-only bind: the active proxy (traefik or caddy) reaches the
+    # container via the `traefik` docker network; this port is for direct
+    # host-side curl/benchmarks, not the outside world. Override HOST_PORT
+    # in .env if 8000 is taken.
     ports:
       - "127.0.0.1:${HOST_PORT:-8000}:8000"
     ipc: host                       # required for NCCL / Torch shared-memory paths
     shm_size: "8gb"
-    # Traefik docker-provider labels — inert when caddy is the active
-    # proxy (caddy reads Caddyfile.d, not labels). When traefik is up,
+    # Traefik docker-provider labels. Inert when Caddy is the active
+    # proxy (Caddy reads Caddyfile.d, not labels). When Traefik is up,
     # they wire vllm:8000 to https://vllm.spark-1822.local.
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=caddy"
+      - "traefik.docker.network=traefik"
       - "traefik.http.routers.vllm.rule=Host(`vllm.spark-1822.local`)"
       - "traefik.http.routers.vllm.entryPoints=websecure"
       - "traefik.http.routers.vllm.tls=true"
@@ -63,6 +64,6 @@ services:
         max-file: "3"
 
 networks:
-  caddy:
+  traefik:
     external: true
-    name: caddy
+    name: traefik

@@ -7,13 +7,13 @@ services:
     restart: unless-stopped
     networks:
       - internal
-      - caddy
-    # Traefik docker-provider labels — inert when caddy is the active
-    # proxy. When traefik is up, they wire ollama:11434 to
-    # https://ollama.spark-1822.local.
+      - traefik
+    # Traefik docker-provider labels. Inert when Caddy is the active
+    # proxy (Caddy reads Caddyfile.d, not labels). When Traefik is up,
+    # they wire ollama:11434 to https://ollama.spark-1822.local.
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=caddy"
+      - "traefik.docker.network=traefik"
       - "traefik.http.routers.ollama.rule=Host(`ollama.spark-1822.local`)"
       - "traefik.http.routers.ollama.entryPoints=websecure"
       - "traefik.http.routers.ollama.tls=true"
@@ -53,13 +53,13 @@ services:
         condition: service_healthy
     networks:
       - internal
-      - caddy
-    # Traefik docker-provider labels — inert when caddy is the active
-    # proxy. When traefik is up, they wire open-webui:8080 to
-    # https://open-webui.spark-1822.local.
+      - traefik
+    # Traefik docker-provider labels. Inert when Caddy is the active
+    # proxy (Caddy reads Caddyfile.d, not labels). When Traefik is up,
+    # they wire open-webui:8080 to https://open-webui.spark-1822.local.
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=caddy"
+      - "traefik.docker.network=traefik"
       - "traefik.http.routers.open-webui.rule=Host(`open-webui.spark-1822.local`)"
       - "traefik.http.routers.open-webui.entryPoints=websecure"
       - "traefik.http.routers.open-webui.tls=true"
@@ -90,9 +90,9 @@ services:
 
 networks:
   internal:
-  caddy:
+  traefik:
     external: true
-    name: caddy
+    name: traefik
 
 volumes:
   # Both volumes are external — host-side persistent state we don't want

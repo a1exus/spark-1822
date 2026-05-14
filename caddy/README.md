@@ -1,14 +1,16 @@
 # caddy
 
-HTTPS reverse proxy for every other app on this host. Terminates TLS using [Caddy](https://caddyserver.com)'s internal CA (`tls internal`) and forwards traffic to the right service over the shared `caddy` Docker network.
+HTTPS reverse proxy — **backup** to [`traefik/`](../traefik/) (primary). Terminates TLS using [Caddy](https://caddyserver.com)'s internal CA (`tls internal`) and forwards traffic to the right service over the shared `traefik` Docker network (owned by `traefik/`; Caddy joins it as external).
 
-Caddy is the only stack that publishes host ports (`80`, `443`, plus `443/udp` for HTTP/3). Every other service is unreachable from the LAN except through it.
+When running, Caddy is the stack that publishes host ports (`80`, `443`, plus `443/udp` for HTTP/3). Caddy and Traefik can't both bind those ports at the same time — start one or the other.
+
+This stack also owns the internal CA that issues the wildcard cert Traefik uses (see [`../traefik/README.md`](../traefik/README.md) → "Mint the TLS wildcard"). Even when Traefik is the active proxy, you still need to have started Caddy at least once so its internal CA exists.
 
 ## Files
 
 ```
 caddy/
-├── docker-compose.yml         # defines the shared `caddy` Docker network (others join external)
+├── docker-compose.yml         # joins external `traefik` network (owned by traefik/)
 ├── Caddyfile                  # global options + snippets + import directive
 ├── Caddyfile.d/               # one file per service
 │   ├── open-webui.caddyfile
@@ -41,7 +43,7 @@ docker compose up -d
 docker compose ps
 ```
 
-This compose stack **owns** the shared `caddy` Docker network: bringing the stack up creates it (if absent), and the other stacks (`vllm/`, `llama-cpp/`, `open-webui/`, `netdata/`, …) join it by referencing `caddy` as `external: true`. Bring Caddy up first.
+Prereq: the shared `traefik` Docker network exists. The `traefik/` stack owns it — bring `traefik/` up at least once (or `docker network create traefik --attachable` manually) before this stack will start.
 
 ## Trust the root CA
 
@@ -74,7 +76,7 @@ The root certificate is host-specific (gitignored as `*.crt`) and rotates only i
 
 ## Add a new app
 
-1. Run the new app's stack with a service on the `caddy` network (no host port publish needed).
+1. Run the new app's stack with a service on the `traefik` network (no host port publish needed).
 2. Create `Caddyfile.d/<name>.caddyfile`:
 
    ```caddyfile

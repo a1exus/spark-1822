@@ -10,7 +10,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - caddy
+      - traefik
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
@@ -35,10 +35,12 @@ services:
         max-file: "3"
 
 networks:
-  caddy:
-    name: caddy
-    attachable: true   # other stacks join via `external: true` referencing this name;
-                       # `attachable` also lets ad-hoc `docker run --network caddy ...` work.
+  # The shared front-end network is now owned by the traefik/ stack
+  # (which is the primary proxy). Caddy just attaches as a backup-mode
+  # proxy on the same network, so its routes reach the same backends.
+  traefik:
+    external: true
+    name: traefik
 
 volumes:
   caddy-data:

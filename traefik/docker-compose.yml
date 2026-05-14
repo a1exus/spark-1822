@@ -8,7 +8,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - caddy
+      - traefik
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
@@ -39,14 +39,14 @@ services:
         max-file: "3"
 
 networks:
-  # Joins the existing front-end network created and owned by the caddy
-  # stack. Lets Traefik reach the same backends (vllm:8000, llama-cpp:8080,
-  # ollama:11434, open-webui:8080) without any change to their compose
-  # files. Traefik and Caddy can't both bind :80 / :443 at the same time
-  # — start one or the other.
-  caddy:
-    external: true
-    name: caddy
+  # The shared front-end network. This stack OWNS the network — bringing
+  # traefik up creates it; other stacks (caddy, vllm, llama-cpp, ...)
+  # reference it as `external: true` and join. Traefik and Caddy can't
+  # both bind :80 / :443, so start one or the other — but they both
+  # attach to the same network so backends are reachable either way.
+  traefik:
+    name: traefik
+    attachable: true
 
 # Volume for LetsEncrypt state (acme.json). Held in a docker volume so
 # the private keys never land on disk under /opt. Unused until the

@@ -30,7 +30,7 @@ cp .env.example .env
 
 Prereqs:
 
-- [Caddy](../caddy/) must be running (it owns the shared `caddy` Docker network this stack joins).
+- [Traefik](../traefik/) (primary) — or [Caddy](../caddy/) (backup) — must be running; whichever is up owns the active proxy on `:80`/`:443`. Either way, the shared `traefik` Docker network must exist (defined by the `traefik/` stack; this stack joins it as external).
 - The two persistent volumes — `open-webui` (WebUI data) and `open-webui-ollama` (Ollama blob store) — must exist. They're declared `external: true` in the compose so `docker compose down -v` never destroys them. First-time deploy:
 
   ```bash

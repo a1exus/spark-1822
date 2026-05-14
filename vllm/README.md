@@ -15,7 +15,7 @@ Smoke-tested on GB10 (compute capability 12.1) with `Qwen/Qwen3.6-27B` at `--max
 
 ## Topology
 
-Single container on the shared `caddy` Docker network. Caddy reaches it over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8000` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8000 is taken. The host's HuggingFace cache is bind-mounted read-write so vLLM and the `hf` CLI share the same downloads. Models come from HuggingFace by repo ID — vLLM loads safetensors directly.
+Single container on the shared `traefik` Docker network (defined by the `traefik/` stack; Caddy joins the same network as backup). Whichever proxy is up reaches the container over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8000` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8000 is taken. The host's HuggingFace cache is bind-mounted read-write so vLLM and the `hf` CLI share the same downloads. Models come from HuggingFace by repo ID — vLLM loads safetensors directly.
 
 ### GPU exclusivity
 
@@ -61,7 +61,7 @@ docker stop vllm
 
 ## Deploy
 
-Prereq: `caddy/` running, shared `caddy` network exists.
+Prereq: a proxy stack (`traefik/` primary, or `caddy/` backup) running on `:80`/`:443`. The shared `traefik` Docker network must exist (owned by `traefik/`).
 
 ```bash
 make list                                # show available variants

@@ -12,7 +12,7 @@ Caddy reads `Caddyfile.d/*.caddyfile`, not labels — so the same compose files 
 
 ```
 traefik/
-├── docker-compose.yml         # traefik service, joins external `caddy` network, mounts docker.sock:ro
+├── docker-compose.yml         # traefik service, defines + owns the shared `traefik` network, mounts docker.sock:ro
 ├── traefik.yml                # static config — docker + file providers, entrypoints, api, log
 ├── dynamic/                   # file provider — hot-reloaded on edit
 │   ├── services.yml           # routes for things the docker provider can't reach (netdata, dashboard)
@@ -46,7 +46,7 @@ Re-run whenever the cert is about to expire (365-day default, override via `CERT
 
 ## Deploy
 
-Prereq: the shared `caddy` Docker network must exist. The `caddy/` stack defines it — bring `caddy/` up at least once if you've never started it. Then **stop Caddy** (you can't bind `:80` / `:443` from two stacks at once):
+Prereq: Caddy has come up at least once on this host (its internal CA, used by `make wildcard-cert`, lives in the `caddy-data` Docker volume — see [`../caddy/README.md`](../caddy/README.md)). Then **stop Caddy** (you can't bind `:80` / `:443` from two stacks at once); bringing Traefik up creates the shared `traefik` network:
 
 ```bash
 docker compose -f /opt/caddy/docker-compose.yml down
@@ -78,17 +78,17 @@ Plain HTTP requests on `:80` are 308-redirected to HTTPS.
 
 ## Add an app
 
-For a container on the `caddy` Docker network, just add labels to its `docker-compose.yml` and let the docker provider pick it up:
+For a container on the `traefik` Docker network, just add labels to its `docker-compose.yml` and let the docker provider pick it up:
 
 ```yaml
 services:
   myapp:
     # … usual config …
     networks:
-      - caddy
+      - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=caddy"
+      - "traefik.docker.network=traefik"
       - "traefik.http.routers.myapp.rule=Host(`myapp.spark-1822.local`)"
       - "traefik.http.routers.myapp.entryPoints=websecure"
       - "traefik.http.routers.myapp.tls=true"

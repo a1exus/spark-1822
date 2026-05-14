@@ -14,7 +14,7 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ## Topology
 
-`llama-cpp` runs as a single container on the shared `caddy` Docker network. Caddy reaches it over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
+`llama-cpp` runs as a single container on the shared `traefik` Docker network (defined by the `traefik/` stack; Caddy joins the same network as backup). Whichever proxy is up reaches the container over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
 
 ### GPU exclusivity
 
@@ -83,7 +83,7 @@ Set `LLAMACPP_TAG=server-cuda@<that-digest>` in the variant file (`envs/<name>.e
 
 ## Deploy
 
-Prereq: `caddy/` is running and the shared `caddy` network exists.
+Prereq: a proxy stack (`traefik/` primary, or `caddy/` backup) running on `:80`/`:443`. The shared `traefik` Docker network must exist (owned by `traefik/`).
 
 ```bash
 make list                                  # show available variants

@@ -66,7 +66,7 @@ Each component has its own `README.md` — start there for deploy / configure / 
 cd /opt/mdns && make install             # mDNS alias helper (see mdns/README.md)
 ```
 
-Then deploy each stack per its own README, in order: `caddy/` first (it creates the shared `caddy` Docker network that everything else joins), then the rest.
+Then deploy each stack per its own README, in order: `traefik/` first (it creates the shared `traefik` Docker network that every other stack joins as external), then the rest.
 
 ## Deploy workflow
 
