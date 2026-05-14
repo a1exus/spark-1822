@@ -14,7 +14,7 @@ Workflow: [`trivy.yml`](trivy.yml). Scans every container image we deploy plus t
 | Job | What it scans |
 |---|---|
 | `extract-tags` | Reads pinned image tags from each stack's `.env.example` and exposes them as job outputs. |
-| `image-scan` (matrix) | CVE scan of each pinned image: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `caddy`, `netdata/netdata`, `ghcr.io/ggml-org/llama.cpp`, `vllm/vllm-openai`. Severity HIGH+CRITICAL, fixed-only. |
+| `image-scan` (matrix) | CVE scan of each pinned image: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `caddy`, `netdata/netdata`, `ghcr.io/ggml-org/llama.cpp`, `vllm/vllm-openai`, `traefik`, `cloudflare/cloudflared`. Severity HIGH+CRITICAL, fixed-only. |
 | `config-scan` | Trivy IaC config check across the whole repo (compose misconfig, etc.). |
 | `secret-scan` | Filesystem scan for accidentally-committed secrets. |
 

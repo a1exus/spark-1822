@@ -26,6 +26,8 @@ jobs:
       netdata_tag: ${{ steps.tags.outputs.netdata_tag }}
       llamacpp_tag: ${{ steps.tags.outputs.llamacpp_tag }}
       vllm_tag: ${{ steps.tags.outputs.vllm_tag }}
+      traefik_tag: ${{ steps.tags.outputs.traefik_tag }}
+      cloudflared_tag: ${{ steps.tags.outputs.cloudflared_tag }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
@@ -52,12 +54,16 @@ jobs:
           netdata_tag=$(extract netdata/.env.example NETDATA_TAG)
           llamacpp_tag=$(extract llama-cpp/.env.example LLAMACPP_TAG)
           vllm_tag=$(extract vllm/.env.example VLLM_TAG)
+          traefik_tag=$(extract traefik/.env.example TRAEFIK_TAG)
+          cloudflared_tag=$(extract cloudflare/.env.example CLOUDFLARED_TAG)
           echo "ollama_tag=${ollama_tag}" >> "$GITHUB_OUTPUT"
           echo "open_webui_tag=${open_webui_tag}" >> "$GITHUB_OUTPUT"
           echo "caddy_tag=${caddy_tag}" >> "$GITHUB_OUTPUT"
           echo "netdata_tag=${netdata_tag}" >> "$GITHUB_OUTPUT"
           echo "llamacpp_tag=${llamacpp_tag}" >> "$GITHUB_OUTPUT"
           echo "vllm_tag=${vllm_tag}" >> "$GITHUB_OUTPUT"
+          echo "traefik_tag=${traefik_tag}" >> "$GITHUB_OUTPUT"
+          echo "cloudflared_tag=${cloudflared_tag}" >> "$GITHUB_OUTPUT"
 
   image-scan:
     needs: extract-tags
@@ -81,6 +87,10 @@ jobs:
             image: ghcr.io/ggml-org/llama.cpp:${{ needs.extract-tags.outputs.llamacpp_tag }}
           - name: vllm
             image: vllm/vllm-openai:${{ needs.extract-tags.outputs.vllm_tag }}
+          - name: traefik
+            image: traefik:${{ needs.extract-tags.outputs.traefik_tag }}
+          - name: cloudflared
+            image: cloudflare/cloudflared:${{ needs.extract-tags.outputs.cloudflared_tag }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
