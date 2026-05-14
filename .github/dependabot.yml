@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  # GitHub Actions — keep the SHA pins in .github/workflows/ current.
+  # Dependabot opens a PR each Monday with any actions that have new
+  # releases; SHAs get bumped, and our pinned-by-commit policy is
+  # preserved. PRs are grouped to keep noise low.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(actions)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -27,8 +27,9 @@ All findings are uploaded as SARIF to the repo's [Security tab](https://github.c
 
 ## Hardening
 
-- All third-party actions are pinned by commit SHA (not tag).
+- All third-party actions are pinned by commit SHA (not tag). [`.github/dependabot.yml`](../dependabot.yml) opens a grouped PR each Monday with any updates so the pins don't go stale.
 - Top-level `permissions: contents: read`; jobs declare `security-events: write` only where needed.
+- Every job has `timeout-minutes` set (5/20/10/10 for `extract-tags` / `image-scan` / `config-scan` / `secret-scan`) so a stuck step can't burn the runner's 6-hour default.
 - `extract-tags` parses `.env.example` with `grep` + a strict regex `^[A-Za-z0-9._@:+-]+$` (no `source`-ing of user-controlled files — protects against workflow injection via PR-modified env values). The regex accepts OCI digest pins like `server-cuda@sha256:…` while excluding every shell-meaningful character.
 - Concurrency: `cancel-in-progress` per ref to avoid wasted runs.
 

@@ -19,6 +19,7 @@ concurrency:
 jobs:
   extract-tags:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       ollama_tag: ${{ steps.tags.outputs.ollama_tag }}
       open_webui_tag: ${{ steps.tags.outputs.open_webui_tag }}
@@ -68,6 +69,7 @@ jobs:
   image-scan:
     needs: extract-tags
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       security-events: write
@@ -123,6 +125,7 @@ jobs:
 
   config-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
@@ -148,6 +151,7 @@ jobs:
 
   secret-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
