@@ -58,17 +58,20 @@ llama-cpp/
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — it has the image pin, HF cache path, HF token, model source, alias, context, and GPU layers in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the running container gets the right variant's values.
+Two layers:
 
-`.env` lives alongside as a placeholder file (auto-`cp .env.example .env` by `make up` on first run, gitignored thereafter). Its only purpose is to satisfy compose's `${VAR:?...}` required-var checks when you invoke raw `docker compose` without `--env-file` — for `ps / logs / down / pull` etc. that don't actually care about the model path:
+- **`.env`** (host-wide) — shared across every variant. `LLAMACPP_TAG` (image pin), `HF_CACHE_HOST`, `HF_TOKEN`, default `MODEL_ALIAS` / `CTX_SIZE` / `N_GPU_LAYERS`. Bootstrapped from `.env.example` by `make up` on first run; gitignored thereafter.
+- **`envs/<name>.env`** (per-variant) — just the model selection: `MODEL_PATH` (or `MODEL_OLLAMA` / `MODEL_URL`), `MODEL_ALIAS`, and any per-variant overrides.
+
+`make up ENV=<name>` chains both via `docker compose --env-file .env --env-file envs/<name>.env up -d` — variant wins where it specifies a value, falls back to `.env` otherwise. Edit `HF_TOKEN` once in `.env` and every variant picks it up.
+
+Raw `docker compose ps / logs / down` reads only `.env`:
 
 ```bash
 docker compose ps
 docker compose logs -f llama-cpp
 docker compose down
 ```
-
-A `make up ENV=<name>` always overrides `.env` with the chosen variant, so the placeholder values never reach the running container.
 
 ### Pinning the image
 

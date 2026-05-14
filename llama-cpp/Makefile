@@ -50,7 +50,7 @@ up:  ## Start with the given variant. Usage: make up ENV=<name>
 	    echo "  so raw \`docker compose ps/logs/down\` work without --env-file)"; \
 	    cp .env.example .env; \
 	fi
-	$(COMPOSE) --env-file "envs/$(ENV).env" up -d
+	$(COMPOSE) --env-file .env --env-file "envs/$(ENV).env" up -d
 
 hf-cache:  ## List GGUF files in this host's caches (llama-cpp-cache vol + HF cache).
 	@echo "# in docker volume $(LLAMACPP_CACHE_VOL):"
@@ -81,16 +81,16 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	        printf '+ create  %s — MODEL_PATH=%s\n' "$$file" "$$in_container"; \
 	        { \
 	            echo "# $$gguf · in docker volume $(LLAMACPP_CACHE_VOL) on this host."; \
-	            echo "# Self-contained — \`make up ENV=$$short-hf\` uses this directly."; \
-	            echo ""; \
-	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
-	            echo "HF_CACHE_HOST=$(HF_CACHE)"; \
-	            echo "HF_TOKEN="; \
+	            echo "# Layered on top of ../.env by \`make up ENV=$$short-hf\`."; \
+	            echo "# Host-wide values (LLAMACPP_TAG, HF_CACHE_HOST, HF_TOKEN, defaults)"; \
+	            echo "# live in ../.env."; \
 	            echo ""; \
 	            echo "MODEL_PATH=$$in_container"; \
 	            echo "MODEL_ALIAS=$$short"; \
-	            echo "CTX_SIZE=8192"; \
-	            echo "N_GPU_LAYERS=999"; \
+	            echo ""; \
+	            echo "# Optional per-variant overrides — uncomment to use."; \
+	            echo "# CTX_SIZE=8192"; \
+	            echo "# N_GPU_LAYERS=999"; \
 	        } > "$$file"; \
 	        created=$$((created + 1)); \
 	    fi; \
@@ -112,16 +112,15 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	        printf '+ create  %s — MODEL_PATH=%s\n' "$$file" "$$in_container"; \
 	        { \
 	            echo "# $$base · in $(HF_CACHE) on this host."; \
-	            echo "# Self-contained — \`make up ENV=$$short-hfcache\` uses this directly."; \
-	            echo ""; \
-	            echo "LLAMACPP_TAG=$(LLAMACPP_TAG_DEFAULT)"; \
-	            echo "HF_CACHE_HOST=$(HF_CACHE)"; \
-	            echo "HF_TOKEN="; \
+	            echo "# Layered on top of ../.env by \`make up ENV=$$short-hfcache\`."; \
+	            echo "# Host-wide values live in ../.env."; \
 	            echo ""; \
 	            echo "MODEL_PATH=$$in_container"; \
 	            echo "MODEL_ALIAS=$$short"; \
-	            echo "CTX_SIZE=8192"; \
-	            echo "N_GPU_LAYERS=999"; \
+	            echo ""; \
+	            echo "# Optional per-variant overrides — uncomment to use."; \
+	            echo "# CTX_SIZE=8192"; \
+	            echo "# N_GPU_LAYERS=999"; \
 	        } > "$$file"; \
 	        created=$$((created + 1)); \
 	    fi; \

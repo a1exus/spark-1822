@@ -48,7 +48,7 @@ up:  ## Start with the given variant. Usage: make up ENV=<name>
 	    echo "  so raw \`docker compose ps/logs/down\` work without --env-file)"; \
 	    cp .env.example .env; \
 	fi
-	$(COMPOSE) --env-file "envs/$(ENV).env" up -d
+	$(COMPOSE) --env-file .env --env-file "envs/$(ENV).env" up -d
 
 hf-cache:  ## List HF repos already downloaded in this host's HF cache.
 	@ls -d $(HF_CACHE)/hub/models--* 2>/dev/null \
@@ -74,17 +74,16 @@ hf-sync:  ## Reconcile envs against the HF cache: create new, restore from .bak,
 	    else \
 	        printf '+ create  %s — %s\n' "$$file" "$$repo"; \
 	        { \
-	            echo "# $$repo · in $(HF_CACHE) on this host."; \
-	            echo "# Self-contained — \`make up ENV=$$short\` uses this directly."; \
-	            echo ""; \
-	            echo "VLLM_TAG=v0.20.2"; \
-	            echo "HF_CACHE_HOST=$(HF_CACHE)"; \
-	            echo "HF_TOKEN="; \
+	            echo "# $$repo. Layered on top of ../.env by \`make up ENV=$$short\`."; \
+	            echo "# Host-wide values (VLLM_TAG, HF_CACHE_HOST, HF_TOKEN, defaults)"; \
+	            echo "# live in ../.env."; \
 	            echo ""; \
 	            echo "VLLM_MODEL=$$repo"; \
 	            echo "VLLM_SERVED_NAME=$$short"; \
-	            echo "VLLM_GPU_MEM=0.9"; \
-	            echo "VLLM_MAX_LEN=8192"; \
+	            echo ""; \
+	            echo "# Optional per-variant overrides — uncomment to use."; \
+	            echo "# VLLM_GPU_MEM=0.9"; \
+	            echo "# VLLM_MAX_LEN=8192"; \
 	        } > "$$file"; \
 	        created=$$((created + 1)); \
 	    fi; \

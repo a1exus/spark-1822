@@ -50,17 +50,20 @@ vllm/
 
 ## Configure
 
-Each `envs/<name>.env` is **self-contained** — image pin, HF cache, HF token, model spec, served name, GPU memory, and max context all in one file. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the running container gets the right variant's values.
+Two layers:
 
-`.env` lives alongside as a placeholder file (auto-`cp .env.example .env` by `make up` on first run, gitignored thereafter). Its only purpose is to satisfy compose's `${VAR:?...}` required-var checks when you invoke raw `docker compose` without `--env-file` — for `ps / logs / down / pull` etc. that don't actually care about the model name:
+- **`.env`** (host-wide) — shared across every variant. `VLLM_TAG` (image pin), `HF_CACHE_HOST`, `HF_TOKEN`, default `VLLM_GPU_MEM` / `VLLM_MAX_LEN`. Bootstrapped from `.env.example` by `make up` on first run; gitignored thereafter.
+- **`envs/<name>.env`** (per-variant) — just the model selection: `VLLM_MODEL`, `VLLM_SERVED_NAME`, and any per-variant overrides (e.g. `VLLM_MAX_LEN=65536` for one model). A few lines.
+
+`make up ENV=<name>` chains both via `docker compose --env-file .env --env-file envs/<name>.env up -d` — variant wins where it specifies a value, falls back to `.env` otherwise. Edit `HF_TOKEN` once in `.env` and every variant picks it up; no token-duplication across variant files.
+
+Raw `docker compose ps / logs / down` reads only `.env`, which is enough to satisfy compose's `${VAR:?...}` checks (the `VLLM_MODEL=placeholder` in `.env.example` never reaches a real container — `make up` always overrides):
 
 ```bash
 docker compose ps
 docker compose logs -f vllm
 docker compose down
 ```
-
-A `make up ENV=<name>` always overrides `.env` with the chosen variant, so the placeholder values never reach the running container.
 
 ## Deploy
 
