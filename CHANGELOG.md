@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Added
 
 - `sparky.svg` — project mascot / logo. Chip-headed bot self-portrait with NVIDIA-green LED eyes (GB10 homage), a spark antenna, indicator triplets on the inner panel, and a blinking-cursor wordmark. Hand-authored SVG (no raster), animates on platforms that honor SMIL. Embedded at the top of the top-level `README.md`. AI's self-portrait, contributed by Claude.
+- `mdns/Makefile`: ergonomic per-alias targets — `make add ALIAS=<name>` / `make remove ALIAS=<name>` / `make logs ALIAS=<name>` / `make resolve ALIAS=<name>`. Auto-detects the host's `.local` domain (`HOST=$(hostname).local` default; overrideable). Replaces having to know the systemd template-unit syntax (`sparky-mdns-alias@<name>.<host>.local`). README updated to show the new commands.
 
 ## [0.3.0] - 2026-05-13
 

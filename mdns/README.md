@@ -38,26 +38,46 @@ $ make
   install      Install the script + systemd template unit (idempotent).
   uninstall    Disable every active alias instance, remove the script + unit.
   list         Show every currently-active alias instance.
+  add          Publish a new mDNS alias. Usage: make add ALIAS=<name>
+  remove       Stop and disable an mDNS alias. Usage: make remove ALIAS=<name>
+  logs         Tail journal for a given alias. Usage: make logs ALIAS=<name>
+  resolve      Resolve an alias via mDNS from this host. Usage: make resolve ALIAS=<name>
 ```
 
 ## Add an alias
 
 ```bash
-sudo systemctl enable --now 'sparky-mdns-alias@netdata.spark-1822.local'
+make add ALIAS=netdata
+# expands to: sudo systemctl enable --now 'sparky-mdns-alias@netdata.spark-1822.local'
 ```
 
-Verify from a LAN client:
+`HOST` defaults to `$(hostname).local`. To publish under a different domain, pass it explicitly: `make add ALIAS=netdata HOST=other.local`.
+
+Verify from this host:
+
+```bash
+make resolve ALIAS=netdata
+# expands to: avahi-resolve -n netdata.spark-1822.local
+```
+
+Or from a LAN client:
 
 ```bash
 dig @224.0.0.251 -p 5353 netdata.spark-1822.local   # raw mDNS query
-# or, on the same box:
-avahi-resolve -n netdata.spark-1822.local
+dscacheutil -q host -a name netdata.spark-1822.local   # macOS
+```
+
+If the alias misbehaves, tail its journal:
+
+```bash
+make logs ALIAS=netdata
 ```
 
 ## Remove an alias
 
 ```bash
-sudo systemctl disable --now 'sparky-mdns-alias@netdata.spark-1822.local'
+make remove ALIAS=netdata
+# expands to: sudo systemctl disable --now 'sparky-mdns-alias@netdata.spark-1822.local'
 ```
 
 ## Uninstall everything
