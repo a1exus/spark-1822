@@ -27,7 +27,7 @@ docker compose -f /opt/open-webui/docker-compose.yml stop ollama
 cd /opt/vllm && make up ENV=<name>
 
 # Going back:
-cd /opt/vllm && make down
+docker compose -f /opt/vllm/docker-compose.yml --env-file /opt/vllm/envs/<name>.env down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 

@@ -28,7 +28,7 @@ cd /opt/llama-cpp && make up ENV=<name>
 To go back to ollama:
 
 ```bash
-cd /opt/llama-cpp && make down
+docker compose -f /opt/llama-cpp/docker-compose.yml --env-file /opt/llama-cpp/envs/<name>.env down
 docker compose -f /opt/open-webui/docker-compose.yml up -d
 ```
 
