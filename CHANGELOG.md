@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- `sparky.svg` — project mascot / logo. Chip-headed bot self-portrait with NVIDIA-green LED eyes (GB10 homage), a spark antenna, indicator triplets on the inner panel, and a blinking-cursor wordmark. Hand-authored SVG (no raster), animates on platforms that honor SMIL. Embedded at the top of the top-level `README.md`. AI's self-portrait, contributed by Claude.
+
 ## [0.3.0] - 2026-05-13
 
 ### Added

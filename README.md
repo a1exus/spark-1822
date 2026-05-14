@@ -1,5 +1,9 @@
 # sparky
 
+<p align="center">
+  <img src="sparky.svg" alt="sparky" width="220" height="260">
+</p>
+
 Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `spark-1822` (Ubuntu, aarch64, GB10 GPU).
 
 ## Contents
