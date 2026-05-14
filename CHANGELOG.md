@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 - `sparky.svg` — project mascot / logo. Chip-headed bot self-portrait with NVIDIA-green LED eyes (GB10 homage), a spark antenna, indicator triplets on the inner panel, and a blinking-cursor wordmark. Hand-authored SVG (no raster), animates on platforms that honor SMIL. Embedded at the top of the top-level `README.md`. AI's self-portrait, contributed by Claude.
 - `mdns/Makefile`: ergonomic per-alias targets — `make add ALIAS=<name>` / `make remove ALIAS=<name>` / `make logs ALIAS=<name>` / `make resolve ALIAS=<name>`. Auto-detects the host's `.local` domain (`HOST=$(hostname).local` default; overrideable). Replaces having to know the systemd template-unit syntax (`sparky-mdns-alias@<name>.<host>.local`). README updated to show the new commands.
+- **`traefik/`** stack: alternative HTTPS reverse proxy sibling to `caddy/`. Same set of routes (`vllm.`, `llama.`, `ollama.`, `open-webui.`, `netdata.` + new `traefik.` for the dashboard), file-provider config in `dynamic/`, joins the existing `caddy` Docker network as external so backends need no changes. TLS via a 365-day wildcard cert (`*.spark-1822.local` + apex) **signed by Caddy's existing root CA** — clients that trust `caddy-root.crt` automatically trust Traefik too, no second CA install. Mint/renew with `sudo make wildcard-cert` (extracts Caddy's root from the persistent `caddy-data` volume, signs a new leaf via openssl). Caddy and Traefik can't both bind `:80`/`:443`; start one or the other.
 
 ## [0.3.0] - 2026-05-13
 

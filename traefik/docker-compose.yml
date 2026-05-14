@@ -1,0 +1,41 @@
+name: traefik
+
+services:
+  traefik:
+    image: traefik:${TRAEFIK_TAG:?TRAEFIK_TAG must be set in .env}
+    container_name: traefik
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - caddy
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - ./certs:/etc/traefik/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # Joins the existing front-end network created and owned by the caddy
+  # stack. Lets Traefik reach the same backends (vllm:8000, llama-cpp:8080,
+  # ollama:11434, open-webui:8080) without any change to their compose
+  # files. Traefik and Caddy can't both bind :80 / :443 at the same time
+  # — start one or the other.
+  caddy:
+    external: true
+    name: caddy

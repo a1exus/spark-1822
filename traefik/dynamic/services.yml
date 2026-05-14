@@ -1,0 +1,74 @@
+# Per-service routing. One block per host, mirroring caddy/Caddyfile.d/*.
+# Add a new app: append a router + matching service, drop a corresponding
+# mDNS alias on the host (see mdns/), reload happens automatically (file
+# provider has watch: true).
+
+http:
+  routers:
+    llama:
+      rule: "Host(`llama.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: llama
+      tls: {}                       # use the wildcard from dynamic/tls.yml
+
+    vllm:
+      rule: "Host(`vllm.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: vllm
+      tls: {}
+
+    ollama:
+      rule: "Host(`ollama.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: ollama
+      tls: {}
+
+    open-webui:
+      rule: "Host(`open-webui.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: open-webui
+      tls: {}
+
+    netdata:
+      rule: "Host(`netdata.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: netdata
+      tls: {}
+
+    # Traefik dashboard + API, fronted by the proxy itself.
+    traefik:
+      rule: "Host(`traefik.spark-1822.local`)"
+      entryPoints: [websecure]
+      service: api@internal
+      tls: {}
+
+  services:
+    llama:
+      loadBalancer:
+        servers:
+          - url: "http://llama-cpp:8080"
+        passHostHeader: true
+
+    vllm:
+      loadBalancer:
+        servers:
+          - url: "http://vllm:8000"
+        passHostHeader: true
+
+    ollama:
+      loadBalancer:
+        servers:
+          - url: "http://ollama:11434"
+        passHostHeader: true
+
+    open-webui:
+      loadBalancer:
+        servers:
+          - url: "http://open-webui:8080"
+        passHostHeader: true
+
+    netdata:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:19999"
+        passHostHeader: true

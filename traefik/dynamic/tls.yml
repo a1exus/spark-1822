@@ -1,0 +1,12 @@
+# TLS material. The wildcard cert is signed by Caddy's existing internal
+# root CA, so any client that already trusts caddy-root.crt automatically
+# trusts Traefik's leaves too — no second root to install. Generate it
+# with `make wildcard-cert` from /opt/traefik/.
+
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/wildcard.crt
+      keyFile:  /etc/traefik/certs/wildcard.key
+  options:
+    default:
+      minVersion: VersionTLS12
