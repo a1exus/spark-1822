@@ -1,8 +1,7 @@
 # OpenSSL config used by `make wildcard-cert` (see Makefile). Drives the
 # CSR/x509 generation for the Traefik wildcard cert. The wildcard covers
 # both the apex (spark-1822.local) and any one-label subdomain
-# (*.spark-1822.local) — that's all the Caddyfile.d / dynamic/services.yml
-# routes ever match.
+# (*.spark-1822.local) — that's all the Traefik routes ever match.
 
 [req]
 distinguished_name = req_distinguished_name

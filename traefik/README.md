@@ -18,8 +18,8 @@ traefik/
 │   ├── services.yml           # routes for things the docker provider can't reach (netdata, dashboard)
 │   └── tls.yml                # references the wildcard cert from certs/
 ├── wildcard.cnf               # OpenSSL config for `make wildcard-cert`
-├── Makefile                   # `make wildcard-cert` (mint/renew the leaf)
-├── certs/                     # gitignored — wildcard.crt + wildcard.key live here
+├── Makefile                   # `make ca-cert` (one-time) + `make wildcard-cert` (renew)
+├── certs/                     # gitignored — traefik-root.{crt,key} + wildcard.{crt,key}
 ├── .env.example               # committed; copy to .env and customize
 └── .env                       # not committed (gitignored)
 ```
@@ -32,29 +32,54 @@ cp .env.example .env
 #   TRAEFIK_TAG — Traefik image tag (e.g. v3.3)
 ```
 
-## Mint the TLS wildcard
+## TLS — internal CA + wildcard
 
-Traefik serves a single wildcard cert (`*.spark-1822.local` + `spark-1822.local`) **signed by Caddy's existing root CA**. Any client that already trusts `caddy-root.crt` (see [`caddy/README.md`](../caddy/README.md)) automatically trusts Traefik's leaf too — no new CA install needed.
-
-Prereq: Caddy has come up at least once on this host (the root CA lives in the persistent `caddy-data` Docker volume).
+Traefik runs its own internal CA. Two steps the first time on a host:
 
 ```bash
-sudo make wildcard-cert
+make ca-cert         # one-time: mint certs/traefik-root.{crt,key} (10-year root)
+make wildcard-cert   # mint certs/wildcard.{crt,key} signed by the root (365-day leaf)
 ```
 
-Re-run whenever the cert is about to expire (365-day default, override via `CERT_DAYS=30 sudo make wildcard-cert`).
+Re-run `make wildcard-cert` to renew the leaf (override the validity with `CERT_DAYS=30 make wildcard-cert`). `make ca-cert` is a no-op if the root already exists — delete `certs/traefik-root.*` only when you want to rotate, and remember that every previously-trusting client will need the new root installed.
+
+### Trust the root CA
+
+Every client (your laptop, phone, container that talks back to this host) needs `certs/traefik-root.crt` in its trust store. Otherwise browsers warn and curl wants `-k`. Same shape as Caddy's table:
+
+| Platform | Command / steps |
+|---|---|
+| macOS (CLI) | `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain traefik-root.crt` |
+| macOS (GUI) | Open `traefik-root.crt` → Keychain Access → System keychain → set the cert to "Always Trust". |
+| iOS | AirDrop or email `traefik-root.crt` → Install profile → Settings → General → About → Certificate Trust Settings → enable full trust. |
+| Linux (Debian/Ubuntu) | `sudo cp traefik-root.crt /usr/local/share/ca-certificates/traefik-root.crt && sudo update-ca-certificates` |
+| Linux (Fedora/RHEL/CentOS) | `sudo cp traefik-root.crt /etc/pki/ca-trust/source/anchors/ && sudo update-ca-trust` |
+| Linux (Arch) | `sudo trust anchor --store traefik-root.crt` |
+| Windows (PowerShell, admin) | `Import-Certificate -FilePath traefik-root.crt -CertStoreLocation Cert:\LocalMachine\Root` |
+| Windows (cmd, admin) | `certutil -addstore -f "ROOT" traefik-root.crt` |
+| Windows (GUI) | Double-click `traefik-root.crt` → Install Certificate → Local Machine → Trusted Root Certification Authorities. |
+| Firefox (any OS) | Firefox doesn't use the system store. Settings → Privacy & Security → Certificates → View Certificates → Authorities → Import. |
+| Node.js apps | Node bundles its own CA list and ignores the system store. Either export `NODE_EXTRA_CA_CERTS=$(pwd)/traefik-root.crt` before launching, or on Node ≥22 set `NODE_USE_SYSTEM_CA=1` (then the OS install above applies). |
+
+The root and the leaf are both gitignored (`*.crt` / `*.key`). They're host-specific.
 
 ## Deploy
 
-Prereq: Caddy has come up at least once on this host (its internal CA, used by `make wildcard-cert`, lives in the `caddy-data` Docker volume — see [`../caddy/README.md`](../caddy/README.md)). Then **stop Caddy** (you can't bind `:80` / `:443` from two stacks at once); bringing Traefik up creates the shared `traefik` network:
+Prereq: TLS material exists (`make ca-cert && make wildcard-cert`). Then bring Traefik up — that creates the shared `traefik` Docker network:
 
 ```bash
-docker compose -f /opt/caddy/docker-compose.yml down
 cd /opt/traefik && docker compose up -d
 docker compose ps
 ```
 
-To switch back to Caddy:
+To switch over from Caddy (if it's currently the active proxy):
+
+```bash
+docker compose -f /opt/caddy/docker-compose.yml down
+cd /opt/traefik && docker compose up -d
+```
+
+And back:
 
 ```bash
 docker compose -f /opt/traefik/docker-compose.yml down
@@ -107,7 +132,7 @@ For containers that **can't** be label-discovered (host-network mode, external s
 
 ## LetsEncrypt (publicly-trusted certs)
 
-The wildcard cert above is signed by Caddy's internal CA — fine for LAN clients that trust `caddy-root.crt`, but every other browser will warn. If you ever expose this host on a **publicly-resolvable domain** (e.g. `spark.example.com`), LE can issue real, publicly-trusted certs.
+The wildcard cert above is signed by Traefik's own internal CA — fine for LAN clients that trust `traefik-root.crt`, but every other browser will warn. If you ever expose this host on a **publicly-resolvable domain** (e.g. `spark.example.com`), LE can issue real, publicly-trusted certs.
 
 The scaffolding is already in place — three blocks to uncomment + edit, in order:
 
@@ -150,6 +175,6 @@ docker volume rm traefik-certs 2>/dev/null || true
 ## See also
 
 - Top-level [README](../README.md)
-- [`caddy/`](../caddy/) — the canonical / default reverse proxy
+- [`caddy/`](../caddy/) — sibling reverse-proxy stack (backup)
 - [`mdns/`](../mdns/) — host-side mDNS aliases
 - Traefik docs: <https://doc.traefik.io/traefik/>
