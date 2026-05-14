@@ -8,13 +8,15 @@ Caddy is the only stack that publishes host ports (`80`, `443`, plus `443/udp` f
 
 ```
 caddy/
-├── docker-compose.yml         # caddy service, joins external `caddy` network
+├── docker-compose.yml         # defines the shared `caddy` Docker network (others join external)
 ├── Caddyfile                  # global options + snippets + import directive
 ├── Caddyfile.d/               # one file per service
 │   ├── open-webui.caddyfile
 │   ├── ollama.caddyfile
 │   ├── netdata.caddyfile
-│   └── llama-cpp.caddyfile
+│   ├── llama-cpp.caddyfile
+│   └── vllm.caddyfile
+├── Makefile                   # make ca-cert (extract internal root)
 ├── .env.example               # committed; copy to .env and customize
 └── .env                       # not committed (gitignored)
 ```
@@ -48,7 +50,8 @@ This compose stack **owns** the shared `caddy` Docker network: bringing the stac
 Extract the root:
 
 ```bash
-docker exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
+make ca-cert
+# equivalent to: docker exec caddy cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
 ```
 
 Install it:
