@@ -75,21 +75,19 @@ docker compose down
 
 ### Pinning the image
 
-The `ggml-org/llama.cpp` registry publishes a per-build tag for each upstream commit — `server-cuda-b<NNNN>` for the CUDA-server / multi-arch image. Per-build tags are immutable on the registry, so just pinning the tag is enough; no digest-pin needed.
+Important quirk of `ggml-org/llama.cpp`'s registry: **only the floating `server-cuda` tag is multi-arch**. The per-build tags `server-cuda-b<NNNN>` exist but are **amd64-only single-arch** — pulling one on this aarch64 host will spit a `requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)` warning and the container won't actually run.
 
-Browse builds at <https://github.com/ggml-org/llama.cpp/pkgs/container/llama.cpp> (filter to tags starting with `server-cuda-b`) and set `LLAMACPP_TAG=server-cuda-b<NNNN>` in `.env`.
-
-If you want belt-and-suspenders digest pinning (e.g. to guard against a hypothetical registry compromise), resolve the manifest digest for that specific tag:
+The right pin shape is therefore the digest of the multi-arch `server-cuda` manifest list — Docker picks the arm64 layer from inside it. Re-resolve when you want to bump:
 
 ```bash
 TOK=$(curl -s 'https://ghcr.io/token?service=ghcr.io&scope=repository:ggml-org/llama.cpp:pull' | jq -r .token)
 curl -sI -H "Authorization: Bearer $TOK" \
     -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
-    "https://ghcr.io/v2/ggml-org/llama.cpp/manifests/server-cuda-b5343" \
+    'https://ghcr.io/v2/ggml-org/llama.cpp/manifests/server-cuda' \
     | grep -i docker-content-digest
 ```
 
-Then set `LLAMACPP_TAG=server-cuda-b5343@<that-digest>`.
+Set `LLAMACPP_TAG=server-cuda@<that-digest>` in `.env`. Browse builds at <https://github.com/ggml-org/llama.cpp/pkgs/container/llama.cpp> to see which upstream commit a given digest corresponds to.
 
 ## Deploy
 
@@ -158,7 +156,7 @@ Use `MODEL_URL=<https://…>` instead of `MODEL_PATH`. llama.cpp downloads the f
 
 ## Upgrade
 
-Bump `LLAMACPP_TAG` in `.env` to a newer build (e.g. `server-cuda-b<NNNN>` — see "Pinning the image" above for browsing builds), then:
+Re-resolve `server-cuda`'s manifest-list digest (snippet above), bump `LLAMACPP_TAG` in `.env`, then:
 
 ```bash
 docker compose --env-file envs/<name>.env pull   # resolve image tag from the variant
