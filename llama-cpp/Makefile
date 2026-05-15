@@ -158,4 +158,19 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	            fi;; \
 	    esac; \
 	done; \
-	echo "summary — $$created created, $$restored restored, $$orphaned orphaned"
+	echo "summary — $$created created, $$restored restored, $$orphaned orphaned"; \
+	shopt -s nullglob; \
+	st_only=0; \
+	for d in $(HF_CACHE)/hub/models--*/; do \
+	    gg=$$(find "$$d" -name "*.gguf" 2>/dev/null | wc -l); \
+	    st=$$(find "$$d" -name "*.safetensors" 2>/dev/null | wc -l); \
+	    if [[ $$gg -eq 0 && $$st -gt 0 ]]; then st_only=$$((st_only + 1)); fi; \
+	done; \
+	if [[ $$st_only -gt 0 ]]; then \
+	    echo; \
+	    echo "note: $$st_only HF repo(s) in $(HF_CACHE)/hub/ have only safetensors — not"; \
+	    echo "      usable by llama.cpp directly (they're vllm-format). To make one of"; \
+	    echo "      them work here, either pull a GGUF variant from HF (e.g."; \
+	    echo "      \`hf download bartowski/<model>-GGUF\`) or convert locally with"; \
+	    echo "      llama.cpp's convert_hf_to_gguf.py. \`make hf-cache\` shows which."; \
+	fi
