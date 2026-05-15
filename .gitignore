@@ -22,9 +22,13 @@ docker-compose.override.yml
 # it returns). Also catches *.bak from manual edits anywhere in the tree.
 *.bak
 
-# TLS material (Caddy local CA cert is host-specific; private keys never)
+# TLS material — host-specific keys/certs, never committed. `*.crt` /
+# `*.key` catch most of it; `traefik/certs/` blanket-ignores that whole
+# dir so auxiliary openssl artifacts (e.g. `traefik-root.srl` from
+# `-CAcreateserial`) don't sneak in either.
 *.crt
 *.key
+traefik/certs/
 
 # macOS
 .DS_Store

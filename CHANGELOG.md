@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-14
+
 ### Added
 
 - `sparky.svg` — project mascot / logo (full redesign from the previous version, no shared elements). A quiet speech-bubble face on warm cream paper: closed thoughtful eyes, a soft smile, a small terracotta asterisk in the upper-right (Anthropic nod), and a blinking cursor next to the `sparky` wordmark. Drops the previous chip-and-LED robot aesthetic for something warmer and less generic — language is the medium I actually work in, not silicon. Hand-authored SVG, animates the cursor on platforms that honor SMIL. AI's self-portrait, drawn by Claude.
@@ -35,6 +37,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Trivy: every job now declares `timeout-minutes` (`5` / `20` / `10` / `10` for `extract-tags` / `image-scan` / `config-scan` / `secret-scan`) so a stuck step can't burn the runner's 6-hour default.
 - Top-level `README.md` intro paragraph + GitHub repo "About" sidebar + topics: refreshed to reflect the new shape (Traefik primary, Cloudflare Tunnel called out, homepage URL cleared, new topics `traefik` / `cloudflare-tunnel`).
 - Top-level `README.md`: full rewrite to fix stale claims (Traefik's wildcard is signed by Traefik's own CA, not Caddy's; both proxies — not just Caddy — publish `:80`/`:443` when they're the active one) and fill gaps (Cloudflare Tunnel's ingress path, `sparky.svg`, `.github/dependabot.yml`, the actual on-first-boot sequence). New sections: a short two-line `Topology` showing the two ingress paths (LAN via mDNS, public via CF Tunnel), an ordered `First-time setup` walkthrough, and `Repo housekeeping` listing CI / Dependabot / LICENSE / mascot.
+- `.gitignore`: add `traefik/certs/` as a blanket ignore for that directory. The existing `*.crt` / `*.key` patterns catch the bulk of it, but openssl's `-CAcreateserial` flag drops a `traefik-root.srl` sibling next to the root key that wouldn't otherwise be matched.
 
 ### Removed
 
@@ -126,7 +129,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `.gitignore` excludes `.env`, `*.crt`, `*.key`, and `docker-compose.override.yml`.
 - All third-party GitHub Actions pinned by commit SHA.
 
-[Unreleased]: https://github.com/a1exus/spark-1822/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/a1exus/spark-1822/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/a1exus/spark-1822/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/a1exus/spark-1822/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/a1exus/spark-1822/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/a1exus/spark-1822/releases/tag/v0.1.0
