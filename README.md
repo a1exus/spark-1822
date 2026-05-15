@@ -10,22 +10,24 @@ Configuration for the [NVIDIA DGX Spark](https://amzn.to/47ZeWqZ) workstation `s
 - **Open WebUI + Ollama** for the chat UI.
 - **Traefik** (primary, docker-label-driven) or **Caddy** (backup, Caddyfile-driven) as the HTTPS reverse proxy in front of everything — pick one at a time.
 - **Cloudflare Tunnel** for outbound-only public ingress (no inbound ports on the host).
+- **Tailscale** sidecar for tailnet-only ingress (peer-to-peer over WireGuard; no public DNS, no public ports).
 - **Netdata** for real-time observability.
 - **mDNS** helper publishing `<sub>.spark-1822.local` aliases on the LAN.
 - **Trivy** + **Dependabot** keep the supply chain honest in CI.
 
 ## Topology
 
-Two ingress paths into the same backends:
+Three ingress paths into the same backends:
 
 ```
 LAN client      ──(mDNS *.spark-1822.local)──>  traefik :80/:443  ──>  backend
 public client   ──(DNS, Cloudflare edge)──>  cloudflared ──>  traefik :80  ──>  backend
+tailnet client  ──(MagicDNS, WireGuard)──>  tailscale :443  ──>  traefik :80  ──>  backend
 ```
 
-Backends (`vllm`, `llama-cpp`, `open-webui`, `ollama`, `netdata`) all sit on a single shared Docker network named `traefik` — defined by the `traefik/` stack, joined as `external: true` by everyone else. The active proxy and the tunnel connector each attach to the same network and dial container names directly.
+Backends (`vllm`, `llama-cpp`, `open-webui`, `ollama`, `netdata`) all sit on a single shared Docker network named `traefik` — defined by the `traefik/` stack, joined as `external: true` by everyone else. The active proxy and both tunnel/sidecar connectors each attach to the same network and dial container names directly.
 
-TLS comes from three different roots: Traefik and Caddy each mint their own internal CA (clients install the corresponding `*-root.crt` once); Cloudflare provides publicly-trusted certs at its edge for the tunnel hostnames.
+TLS comes from four different roots: Traefik and Caddy each mint their own internal CA (clients install the corresponding `*-root.crt` once); Cloudflare provides publicly-trusted certs at its edge for the tunnel hostnames; Tailscale auto-provisions publicly-trusted MagicDNS certs for the tailnet hostname.
 
 ## Layout
 
@@ -34,6 +36,7 @@ TLS comes from three different roots: Traefik and Caddy each mint their own inte
 ├── traefik/       # HTTPS reverse proxy — primary (docker-label-driven)
 ├── caddy/         # HTTPS reverse proxy — backup (Caddyfile-driven)
 ├── cloudflare/    # Cloudflare Tunnel connector — public ingress
+├── tailscale/     # Tailscale sidecar — tailnet ingress
 ├── vllm/          # vLLM inference server (HF safetensors)
 ├── llama-cpp/     # llama.cpp inference server (GGUF)
 ├── open-webui/    # Open WebUI + Ollama (chat UI)
@@ -55,6 +58,7 @@ Each stack has its own `README.md` — start there for deploy / configure / upgr
 | [`traefik/`](traefik/) | HTTPS reverse proxy (primary), docker-label-driven, mints its own internal CA | publishes `:80`/`:443` |
 | [`caddy/`](caddy/) | HTTPS reverse proxy (backup), Caddyfile-driven, mints its own internal CA | publishes `:80`/`:443` (pick caddy or traefik, not both) |
 | [`cloudflare/`](cloudflare/) | Cloudflare Tunnel connector — outbound-only public ingress | configurable per-hostname in the CF dashboard |
+| [`tailscale/`](tailscale/) | Tailscale sidecar — tailnet-only ingress over WireGuard, optional Serve overlay fronts `traefik` | `https://spark-1822.<tailnet>.ts.net` |
 | [`vllm/`](vllm/) | vLLM inference server (HF safetensors), tool-calling enabled (`qwen3_xml`) | `https://vllm.spark-1822.local` |
 | [`llama-cpp/`](llama-cpp/) | llama.cpp server (GGUF), OpenAI-compatible API + web UI | `https://llama.spark-1822.local` |
 | [`open-webui/`](open-webui/) | Open WebUI + Ollama (GPU on Ollama only) | `https://open-webui.spark-1822.local`, `https://ollama.spark-1822.local` |
@@ -119,6 +123,16 @@ On a fresh host, in order:
    ```
 
    Then configure Public Hostnames in the Cloudflare dashboard so they forward to `http://traefik:80` with the matching internal Host header (recipe in [`cloudflare/README.md`](cloudflare/README.md)).
+
+6. **(Optional) Tailnet ingress via Tailscale** — only if you want this host reachable from your tailnet:
+
+   ```bash
+   cd /opt/tailscale
+   cp .env.example .env             # paste TS_AUTHKEY from the Tailscale admin console
+   docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+   ```
+
+   The node registers as `spark-1822.<tailnet>.ts.net` with a real publicly-trusted MagicDNS cert; the overlay wires `:443` on the tailnet to `http://traefik:80`. See [`tailscale/README.md`](tailscale/README.md) for the Host-header note (Traefik routers match on `*.spark-1822.local`, so tailnet hostnames need to be added to existing `rule=` labels).
 
 ## Deploy workflow
 

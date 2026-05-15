@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- **`tailscale/`** stack: [Tailscale](https://tailscale.com/) sidecar — third ingress path alongside the LAN (mDNS) and public (Cloudflare Tunnel) ones. Registers this host as a node on your tailnet (`spark-1822.<tailnet>.ts.net`) and, via the opt-in `docker-compose.traefik.yml` overlay, runs [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) to terminate TLS on tailnet `:443` (real publicly-trusted MagicDNS cert) and reverse-proxy to `http://traefik:80`. Userspace networking mode (no `/dev/net/tun`, no privileged caps); node key + machine state in a named docker volume so secrets stay out of `/opt`. Overlay is committed as `docker-compose.traefik.yml` rather than `docker-compose.override.yml` because the repo `.gitignore` excludes the latter as local-only — activate with `-f`, drop the `-f` to fall back to plain-sidecar mode. `tailscale/README.md` documents the Host-header routing caveat (Traefik routers match `*.spark-1822.local`, so tailnet hostnames need to be added to existing `rule=` labels) plus a "Hardening" section calling out four deferred follow-ups vs. Tailscale's production guidance: file-mounted auth secret over plain env, OAuth client credentials over static auth keys, `--advertise-tags=tag:server` for ACL identity, and kernel networking mode for throughput.
+
 ### Changed
 
 - `llama-cpp/.env.example` + `entrypoint.sh` + the `hf-sync` per-variant template: default `CTX_SIZE` 8192 → 32768. Matches what most contemporary 27B–120B GGUFs handle comfortably without YaRN tricks; per-variant overrides still win (uncomment `CTX_SIZE=…` in `envs/<name>.env`).
 - `vllm/.env.example` + `entrypoint.sh` + the `hf-sync` per-variant template: default `VLLM_MAX_LEN` 8192 → 32768 (same rationale as llama-cpp).
+- Top-level `README.md`: `tailscale/` added to the intro bullets, Topology diagram (three ingress paths now), Layout tree, Components table, and First-time setup (new optional step 6, mirroring the Cloudflare Tunnel step).
 
 ### Security
 

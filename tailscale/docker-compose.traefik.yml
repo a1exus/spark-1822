@@ -1,0 +1,31 @@
+# Overlay that wires the Tailscale sidecar to the existing `traefik/` stack.
+# Activate alongside the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+#
+# To disable, just bring the stack up without this file:
+#
+#   docker compose down && docker compose up -d
+#
+# (Not named docker-compose.override.yml on purpose — the repo .gitignore
+# excludes that filename for local-only host tweaks. This overlay is shipped.)
+
+services:
+  tailscale:
+    networks:
+      - traefik
+    environment:
+      # TS_SERVE_CONFIG points at the mounted JSON. The image substitutes
+      # ${TS_CERT_DOMAIN} inside the JSON at startup with the node's MagicDNS
+      # hostname (e.g. spark-1822.<tailnet>.ts.net).
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - ./serve.json:/config/serve.json:ro
+
+networks:
+  # Shared front-end network owned by the `traefik/` stack — must already
+  # exist (bring `traefik/` up at least once, or `docker network create
+  # traefik --attachable`).
+  traefik:
+    external: true
+    name: traefik

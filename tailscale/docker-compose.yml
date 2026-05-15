@@ -1,0 +1,38 @@
+name: tailscale
+
+services:
+  tailscale:
+    image: tailscale/tailscale:${TAILSCALE_TAG:?TAILSCALE_TAG must be set in .env}
+    container_name: tailscale
+    hostname: ${TS_HOSTNAME:?TS_HOSTNAME must be set in .env}
+    # Userspace networking — no /dev/net/tun, no net_admin/net_raw caps required.
+    # Sufficient for Tailscale Serve (TLS termination + reverse proxy on the
+    # tailnet). Switch to kernel mode only if this node needs to advertise
+    # subnet routes or act as an exit node.
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:?TS_AUTHKEY must be set in .env}
+      - TS_HOSTNAME=${TS_HOSTNAME}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+    volumes:
+      # Node key + machine state lives in a docker volume so secrets stay
+      # out of /opt (which is the git working tree on the host).
+      - tailscale-state:/var/lib/tailscale
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--peers=false"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  tailscale-state:
+    name: tailscale-state
