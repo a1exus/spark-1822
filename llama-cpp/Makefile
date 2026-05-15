@@ -69,8 +69,8 @@ hf-cache:  ## List cached models — GGUFs in llama-cpp-cache vol + every HF rep
 	done
 
 hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, restore from .bak, orphan to .bak.
-	@gguf_vol=$$(docker run --rm -v $(LLAMACPP_CACHE_VOL):/d alpine sh -c 'ls /d/*.gguf 2>/dev/null' | sed 's|.*/||' | sort -u); \
-	gguf_hf=$$(find $(HF_CACHE) -name "*.gguf" 2>/dev/null | sort -u); \
+	@gguf_vol=$$(docker run --rm -v $(LLAMACPP_CACHE_VOL):/d alpine sh -c 'ls /d/*.gguf 2>/dev/null' 2>/dev/null | sed 's|.*/||' | sort -u || true); \
+	gguf_hf=$$(find $(HF_CACHE) -name "*.gguf" 2>/dev/null | sort -u || true); \
 	cd envs; \
 	created=0; restored=0; orphaned=0; \
 	for gguf in $$gguf_vol; do \
