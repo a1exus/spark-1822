@@ -39,6 +39,12 @@ All findings are uploaded as SARIF to the repo's [Security tab](https://github.c
 - Adding a new stack: extend `extract-tags` to read the new `<stack>/.env.example`, then add an entry to the `image-scan` matrix referencing the new tag output.
 - Bumping `aquasecurity/trivy-action` itself: resolve the new tag to a commit SHA and update all three `uses:` lines together.
 
+## Known findings
+
+| Image | CVE | Library | Notes |
+|---|---|---|---|
+| `cloudflare/cloudflared:2026.5.0` | [CVE-2026-33186](https://avd.aquasec.com/nvd/cve-2026-33186) | `google.golang.org/grpc` v1.72.2 (fixed in 1.79.3) | gRPC-Go authorization-bypass via HTTP/2 path validation. `cloudflared` is a gRPC **client** to Cloudflare's edge here — the attack vector requires an attacker-controlled server, not our scenario. Awaiting upstream rebuild — bump `CLOUDFLARED_TAG` in `cloudflare/.env.example` once a fixed tag ships. Until then, the `image-scan (cloudflared, …)` matrix job will fail the gate; other matrix jobs are unaffected. |
+
 ## Local equivalent
 
 To reproduce a single scan locally:

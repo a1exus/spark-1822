@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Changed
+
+- `llama-cpp/.env.example` + `entrypoint.sh` + the `hf-sync` per-variant template: default `CTX_SIZE` 8192 → 32768. Matches what most contemporary 27B–120B GGUFs handle comfortably without YaRN tricks; per-variant overrides still win (uncomment `CTX_SIZE=…` in `envs/<name>.env`).
+
+### Security
+
+- Known finding: Trivy flagged [CVE-2026-33186](https://avd.aquasec.com/nvd/cve-2026-33186) (gRPC-Go authorization bypass via HTTP/2 path validation, fixed in `google.golang.org/grpc` 1.79.3) inside `cloudflare/cloudflared:2026.5.0`'s embedded Go binary. Cloudflare hasn't shipped a rebuild yet, so `image-scan (cloudflared, …)` will keep failing the CRITICAL gate. Practical risk for this host is low — cloudflared is a gRPC *client* to Cloudflare's edge (the vector requires an attacker-controlled server). Action: bump `CLOUDFLARED_TAG` in `cloudflare/.env.example` once a fixed tag ships; the entry in `.github/workflows/trivy.md` → "Known findings" tracks it.
+
 ## [0.4.0] - 2026-05-14
 
 ### Added

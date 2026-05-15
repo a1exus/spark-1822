@@ -11,7 +11,7 @@ set -euo pipefail
 args=(
     --host "${LISTEN_HOST:-0.0.0.0}"
     --port "${LISTEN_PORT:-8080}"
-    --ctx-size "${CTX_SIZE:-8192}"
+    --ctx-size "${CTX_SIZE:-32768}"
     --n-gpu-layers "${N_GPU_LAYERS:-999}"
     --alias "${MODEL_ALIAS:-llama-cpp}"
 )

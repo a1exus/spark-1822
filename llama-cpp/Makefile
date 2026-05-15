@@ -99,7 +99,7 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	            echo "MODEL_ALIAS=$$short"; \
 	            echo ""; \
 	            echo "# Optional per-variant overrides — uncomment to use."; \
-	            echo "# CTX_SIZE=8192"; \
+	            echo "# CTX_SIZE=32768"; \
 	            echo "# N_GPU_LAYERS=999"; \
 	        } > "$$file"; \
 	        created=$$((created + 1)); \
@@ -131,7 +131,7 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	            echo "MODEL_ALIAS=$$short"; \
 	            echo ""; \
 	            echo "# Optional per-variant overrides — uncomment to use."; \
-	            echo "# CTX_SIZE=8192"; \
+	            echo "# CTX_SIZE=32768"; \
 	            echo "# N_GPU_LAYERS=999"; \
 	        } > "$$file"; \
 	        created=$$((created + 1)); \
