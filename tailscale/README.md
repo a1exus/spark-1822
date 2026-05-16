@@ -67,16 +67,16 @@ tailnet client  ──(https, MagicDNS cert)──>  tailscale (:443 on tailnet)
 
 ### Host-header routing — applied
 
-Tailscale Serve forwards requests with the **original** Host header — i.e. `spark-1822.cuscus-macaroni.ts.net`. Out of the box, Traefik's routers match only on `*.spark-1822.local` (the mDNS LAN names), so hitting the tailnet URL would 404.
-
-Fix applied: every existing router has the tailnet hostname appended to its `rule=` clause via `|| Host(\`spark-1822.cuscus-macaroni.ts.net\`)`. Six routers in total — `ollama`, `open-webui`, `vllm`, `llama` (label-based in each app's compose), plus `netdata` and `traefik` (file-based in `traefik/dynamic/services.yml`).
+Tailscale Serve forwards requests with the **original** Host header — e.g. `spark-1822.cuscus-macaroni.ts.net`. Every Traefik router accepts that hostname (and any other `spark*.<domain>`) via a pair of `HostRegexp` matchers per rule: one for the per-service subdomain form (`<svc>.spark*.<domain>`) and one bare-host form (`spark*.<domain>`) for whichever name the tailnet — or a renamed LAN host — presents.
 
 ```yaml
 # example, open-webui/docker-compose.yml
-- "traefik.http.routers.open-webui.rule=Host(`open-webui.spark-1822.local`) || Host(`spark-1822.cuscus-macaroni.ts.net`)"
+- "traefik.http.routers.open-webui.rule=HostRegexp(`open-webui.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
 ```
 
-Consequence: a single node has one tailnet hostname, so all six routers now match the *same* tailnet Host. Traefik resolves the conflict by router priority, which defaults to **rule length** — longest rule wins. With the current rules, `open-webui` (longest subdomain prefix) wins, so `https://spark-1822.cuscus-macaroni.ts.net/` lands on Open WebUI. The other five services remain reachable only via their LAN mDNS URLs.
+Six routers carry the pair — `ollama`, `open-webui`, `vllm`, `llama` (label-based in each app's compose), plus `netdata` and `traefik` (file-based in `traefik/dynamic/services.yml`).
+
+Consequence: a single node has one tailnet hostname, so all six routers' second matcher fires on the *same* tailnet Host. Traefik resolves the conflict by router priority, which defaults to **rule length** — longest rule wins. With the current rules, `open-webui` (longest subdomain prefix) wins, so `https://spark-1822.cuscus-macaroni.ts.net/` lands on Open WebUI. The other five services remain reachable only via their LAN mDNS URLs.
 
 If a different service should be the tailnet default, override priority on its router — either `traefik.http.routers.<name>.priority=1000` as a label, or `priority: 1000` in `dynamic/services.yml`. Higher number wins.
 

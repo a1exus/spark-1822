@@ -4,7 +4,7 @@ HTTPS reverse proxy — **primary** front-facing entry point on this host. [`cad
 
 ## How routing works
 
-Each app's `docker-compose.yml` carries `traefik.*` labels (`Host(...)`, `entryPoints`, `tls`, `loadbalancer.server.port`). Traefik's **docker provider** discovers them via the docker socket and wires up routers + services automatically — no central config file to edit when you add a new app. Anything that can't be label-driven (host-network containers like `netdata`; Traefik's own dashboard) lives in `dynamic/services.yml` and the **file provider** picks it up.
+Each app's `docker-compose.yml` carries `traefik.*` labels (router `rule`, `entryPoints`, `tls`, `loadbalancer.server.port`). Traefik's **docker provider** discovers them via the docker socket and wires up routers + services automatically — no central config file to edit when you add a new app. Anything that can't be label-driven (host-network containers like `netdata`; Traefik's own dashboard) lives in `dynamic/services.yml` and the **file provider** picks it up.
 
 Caddy reads `Caddyfile.d/*.caddyfile`, not labels — so the same compose files work under either proxy. Switching is a `docker compose down` + `docker compose up -d` away.
 
@@ -114,7 +114,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.myapp.rule=Host(`myapp.spark-1822.local`)"
+      - "traefik.http.routers.myapp.rule=HostRegexp(`myapp.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
       - "traefik.http.routers.myapp.entryPoints=websecure"
       - "traefik.http.routers.myapp.tls=true"
       - "traefik.http.services.myapp.loadbalancer.server.port=8080"
