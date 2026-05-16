@@ -21,7 +21,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.vllm.rule=HostRegexp(`vllm.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+      - "traefik.http.routers.vllm.rule=HostRegexp(`vllm.spark{x:.+}`)"
       - "traefik.http.routers.vllm.entryPoints=websecure"
       - "traefik.http.routers.vllm.tls=true"
       - "traefik.http.services.vllm.loadbalancer.server.port=8000"

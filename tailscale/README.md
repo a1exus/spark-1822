@@ -67,20 +67,16 @@ tailnet client  ──(https, MagicDNS cert)──>  tailscale (:443 on tailnet)
 
 ### Host-header routing — applied
 
-Tailscale Serve forwards requests with the **original** Host header — e.g. `spark-1822.cuscus-macaroni.ts.net`. Every Traefik router accepts that hostname (and any other `spark*.<domain>`) via a pair of `HostRegexp` matchers per rule: one for the per-service subdomain form (`<svc>.spark*.<domain>`) and one bare-host form (`spark*.<domain>`) for whichever name the tailnet — or a renamed LAN host — presents.
+Tailscale Serve forwards requests with the **original** Host header. Each Traefik router uses a single `HostRegexp` matcher pinned to its per-service subdomain — `<svc>.spark*.<domain>` — which accepts both the LAN form (`vllm.spark-1822.local`) and any per-service tailnet form a [Tailscale HTTPS subdomain](https://tailscale.com/kb/1153/enabling-https) can present (`vllm.spark-1822.<tailnet>.ts.net`).
 
 ```yaml
 # example, open-webui/docker-compose.yml
-- "traefik.http.routers.open-webui.rule=HostRegexp(`open-webui.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+- "traefik.http.routers.open-webui.rule=HostRegexp(`open-webui.spark{x:.+}`)"
 ```
 
-Six routers carry the pair — `ollama`, `open-webui`, `vllm`, `llama` (label-based in each app's compose), plus `netdata` and `traefik` (file-based in `traefik/dynamic/services.yml`).
+Six routers, one per service — `ollama`, `open-webui`, `vllm`, `llama` (label-based in each app's compose), plus `netdata` and `traefik` (file-based in `traefik/dynamic/services.yml`).
 
-Consequence: a single node has one tailnet hostname, so all six routers' second matcher fires on the *same* tailnet Host. Traefik resolves the conflict by router priority, which defaults to **rule length** — longest rule wins. With the current rules, `open-webui` (longest subdomain prefix) wins, so `https://spark-1822.cuscus-macaroni.ts.net/` lands on Open WebUI. The other five services remain reachable only via their LAN mDNS URLs.
-
-If a different service should be the tailnet default, override priority on its router — either `traefik.http.routers.<name>.priority=1000` as a label, or `priority: 1000` in `dynamic/services.yml`. Higher number wins.
-
-For per-backend tailnet URLs (e.g. `vllm.<tailnet>.ts.net`), see [Tailscale's HTTPS subdomains](https://tailscale.com/kb/1153/enabling-https) — separate setup, not in scope here.
+**Bare-host caveat.** A request whose Host header is `spark-1822.<tailnet>.ts.net` (no per-service subdomain — the form Tailscale Serve forwards by default) matches **no** router and Traefik returns 404. The earlier setup had a fallback `HostRegexp(`spark{x:.+}`)` on every router that let the bare URL land on whichever service won the rule-length tiebreaker (Open WebUI), but the implicit tiebreaker behaviour was confusing; the fallback was dropped on purpose. To reach a backend over the tailnet, point clients at the per-service hostname — either by setting up Tailscale HTTPS subdomains (one tailnet name per backend) or by serving a different per-service Tailscale Serve config per port.
 
 ## Logs
 

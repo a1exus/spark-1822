@@ -20,7 +20,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.llama.rule=HostRegexp(`llama.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+      - "traefik.http.routers.llama.rule=HostRegexp(`llama.spark{x:.+}`)"
       - "traefik.http.routers.llama.entryPoints=websecure"
       - "traefik.http.routers.llama.tls=true"
       - "traefik.http.services.llama.loadbalancer.server.port=8080"

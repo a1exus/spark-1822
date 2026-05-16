@@ -7,14 +7,14 @@ http:
     # netdata runs in network_mode: host — no container endpoint for the
     # docker provider to attach to. Route to host.docker.internal:19999.
     netdata:
-      rule: "HostRegexp(`netdata.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+      rule: "HostRegexp(`netdata.spark{x:.+}`)"
       entryPoints: [websecure]
       service: netdata
       tls: {}
 
     # Traefik's own dashboard + API, fronted by the proxy itself.
     traefik:
-      rule: "HostRegexp(`traefik.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+      rule: "HostRegexp(`traefik.spark{x:.+}`)"
       entryPoints: [websecure]
       service: api@internal
       tls: {}

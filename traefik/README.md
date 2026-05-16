@@ -98,7 +98,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.myapp.rule=HostRegexp(`myapp.spark{x:.+}`) || HostRegexp(`spark{x:.+}`)"
+      - "traefik.http.routers.myapp.rule=HostRegexp(`myapp.spark{x:.+}`)"
       - "traefik.http.routers.myapp.entryPoints=websecure"
       - "traefik.http.routers.myapp.tls=true"
       - "traefik.http.services.myapp.loadbalancer.server.port=8080"
