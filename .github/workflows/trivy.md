@@ -18,7 +18,7 @@ Workflow: [`trivy.yml`](trivy.yml). Scans every container image we deploy plus t
 | `config-scan` | Trivy IaC config check across the whole repo (compose misconfig, etc.). |
 | `secret-scan` | Filesystem scan for accidentally-committed secrets. |
 
-All findings are uploaded as SARIF to the repo's [Security tab](https://github.com/a1exus/spark-1822/security/code-scanning).
+All findings are uploaded as SARIF to the repo's [Security tab](https://github.com/a1exus/sparky/security/code-scanning).
 
 ## Gating
 

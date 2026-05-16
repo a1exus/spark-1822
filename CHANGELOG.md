@@ -149,8 +149,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - `.gitignore` excludes `.env`, `*.crt`, `*.key`, and `docker-compose.override.yml`.
 - All third-party GitHub Actions pinned by commit SHA.
 
-[Unreleased]: https://github.com/a1exus/spark-1822/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/a1exus/spark-1822/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/a1exus/spark-1822/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/a1exus/spark-1822/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/a1exus/spark-1822/releases/tag/v0.1.0
+[Unreleased]: https://github.com/a1exus/sparky/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/a1exus/sparky/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/a1exus/sparky/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/a1exus/sparky/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/a1exus/sparky/releases/tag/v0.1.0
