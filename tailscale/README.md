@@ -85,18 +85,14 @@ Six routers, one per service — `ollama`, `open-webui`, `vllm`, `llama` (label-
 
 A Tailscale [VIP Service](https://tailscale.com/kb/1417/services) is a separate tailnet entity from the node — it has its own MagicDNS name (e.g. `spark.<tailnet>.ts.net`) and its own cert. Nodes opt in to host a service. We use `svc:spark` as a secondary entry point that, like the node hostname, lands on Traefik.
 
-Services config lives in [`services.json`](services.json) (not `serve.json` — different file, different schema; see [Tailscale Services configuration file](https://tailscale.com/kb/1589/tailscale-services-configuration-file)):
+Services config lives in [`services.json`](services.json) (not `serve.json` — different file, different schema; see [Tailscale Services configuration file](https://tailscale.com/kb/1589/tailscale-services-configuration-file)). Because we apply it with `--service=svc:spark`, the file uses the **single-service** form (`ServiceDetailsFile`) — flat `version` + `endpoints`, no outer `services` wrapper:
 
 ```json
 {
   "version": "0.0.1",
-  "services": {
-    "svc:spark": {
-      "endpoints": {
-        "tcp:80":  "http://traefik:80",
-        "tcp:443": "https-insecure://traefik:443"
-      }
-    }
+  "endpoints": {
+    "tcp:80":  "http://traefik:80",
+    "tcp:443": "https-insecure://traefik:443"
   }
 }
 ```

@@ -1,11 +1,7 @@
 {
   "version": "0.0.1",
-  "services": {
-    "svc:spark": {
-      "endpoints": {
-        "tcp:80": "http://traefik:80",
-        "tcp:443": "https-insecure://traefik:443"
-      }
-    }
+  "endpoints": {
+    "tcp:80": "http://traefik:80",
+    "tcp:443": "https-insecure://traefik:443"
   }
 }
