@@ -81,6 +81,18 @@ Six routers, one per service — `ollama`, `open-webui`, `vllm`, `llama` (label-
 
 **Bare tailnet host → Traefik dashboard.** A request whose Host header is `spark-1822.<tailnet>.ts.net` (the form Tailscale Serve forwards by default — Tailscale Serve only knows about the node's own MagicDNS hostname) lands on the **Traefik dashboard**. The dashboard router in `traefik/dynamic/services.yml` is the only one that carries a second `HostRegexp(`spark{x:.+}`)` matcher; every other router stays pinned to its own `<svc>.spark*` subdomain. So `https://spark-1822.<tailnet>.ts.net/` opens the dashboard, and the rest of the backends (`vllm`, `llama`, `ollama`, `open-webui`, `netdata`) are LAN-only — Tailscale Serve doesn't support per-service hostnames on a single node, and we chose not to set up port-based dispatch or run one tailscale container per backend.
 
+### VIP Service (`svc:spark`)
+
+`serve.json` additionally carries a `Services.svc:spark` block that mirrors the node's `:80`/`:443` setup. This lets a Tailscale [VIP Service](https://tailscale.com/kb/1417/services) named `svc:spark` (defined in the admin console at **Services → svc:spark**) advertise on this node — clients on the tailnet hit the service's own MagicDNS name (e.g. `https://spark.<tailnet>.ts.net`) and land on Traefik just like via the node's hostname.
+
+For the daemon to actually advertise the service, the node needs `AdvertiseServices` set. The list is tailnet-specific and host-local (`svc:spark` only exists in this tailnet), so it lives in daemon prefs rather than the committed compose:
+
+```bash
+docker compose exec tailscale tailscale set --advertise-services=svc:spark
+```
+
+State persists in the `tailscale-state` docker volume — survives container restarts. Clear with `--advertise-services=""` when you want to stop advertising.
+
 ## Logs
 
 ```bash
