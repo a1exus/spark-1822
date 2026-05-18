@@ -2,6 +2,6 @@
   "version": "0.0.1",
   "endpoints": {
     "tcp:80": "http://traefik:80",
-    "tcp:443": "https-insecure://traefik:443"
+    "tcp:443": "https+insecure://traefik:443"
   }
 }

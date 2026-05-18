@@ -92,10 +92,12 @@ Services config lives in [`services.json`](services.json) (not `serve.json` — 
   "version": "0.0.1",
   "endpoints": {
     "tcp:80":  "http://traefik:80",
-    "tcp:443": "https-insecure://traefik:443"
+    "tcp:443": "https+insecure://traefik:443"
   }
 }
 ```
+
+> The scheme is `https+insecure://` (plus, not hyphen) — different from the `https-insecure://` accepted in the Proxy field of `serve.json`. The two config surfaces grew up separately; the Services file matches the `ServiceProtocol` constants in `ipn/conffile/serveconf.go`.
 
 Two steps to make the node advertise it (state lives in the `tailscale-state` docker volume — survives restarts; not in the committed compose because `svc:spark` is tailnet-specific):
 
