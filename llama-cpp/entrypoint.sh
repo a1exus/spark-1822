@@ -32,6 +32,9 @@ if [[ -n "${MODEL_OLLAMA:-}" && -z "${MODEL_PATH:-}" ]]; then
         find /ollama/models/manifests/registry.ollama.ai/library -mindepth 2 -type f -printf '  %P\n' 2>/dev/null >&2 || true
         exit 1
     fi
+    # Minified JSON; split records on '}' so each layer becomes its own
+    # record. Pick the model-layer record (mediaType ends in image.model)
+    # and pull its sha256 digest.
     digest=$(awk -v RS='}' '
         /application\/vnd\.ollama\.image\.model/ {
             if (match($0, /sha256:[a-f0-9]+/)) {
