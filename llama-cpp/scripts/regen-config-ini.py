@@ -58,9 +58,14 @@ def main() -> int:
     ctx_default = sys.argv[3]
     ngl_default = sys.argv[4]
 
+    for p in (config_path, orphan_path):
+        if not p.parent.exists():
+            print(f"error: parent directory does not exist: {p.parent}", file=sys.stderr)
+            return 1
+
     current: dict[str, tuple[str, str]] = {}
     for lineno, raw in enumerate(sys.stdin, 1):
-        line = raw.rstrip("\n")
+        line = raw.rstrip("\r\n")
         if not line:
             continue
         parts = line.split("\t")
