@@ -160,15 +160,18 @@ docker compose down
 
 Important quirk of `ggml-org/llama.cpp`'s registry: **only the floating `server-cuda` tag is multi-arch**. The per-build tags `server-cuda-b<NNNN>` exist but are **amd64-only single-arch** — pulling one on this aarch64 host will spit a `requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)` warning and the container won't actually run.
 
-The right pin shape is therefore the digest of the multi-arch `server-cuda` manifest list — Docker picks the arm64 layer from inside it. Re-resolve when you want to bump:
+The right pin shape is therefore the digest of the multi-arch `server-cuda` index — Docker picks the arm64 layer from inside it. Re-resolve when you want to bump:
 
 ```bash
 TOK=$(curl -s 'https://ghcr.io/token?service=ghcr.io&scope=repository:ggml-org/llama.cpp:pull' | jq -r .token)
 curl -sI -H "Authorization: Bearer $TOK" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json' \
     -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
     'https://ghcr.io/v2/ggml-org/llama.cpp/manifests/server-cuda' \
     | grep -i docker-content-digest
 ```
+
+(The OCI accept is listed first — ghcr.io switched from Docker manifest list to OCI image index. Both are sent for compatibility with older registries.)
 
 Set `LLAMACPP_TAG=server-cuda@<that-digest>` in `.env`. Browse builds at <https://github.com/ggml-org/llama.cpp/pkgs/container/llama.cpp> to see which upstream commit a given digest corresponds to.
 
