@@ -14,7 +14,9 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 ## Topology
 
-`llama-cpp` runs as a single container on the shared `traefik` Docker network (defined by the `traefik/` stack). Traefik reaches the container over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
+`llama-cpp` runs as a single container on the shared `traefik` Docker network (defined by the `traefik/` stack). Traefik reaches the container over that network for external traffic. The container also publishes its port on the host's loopback at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
+
+`llama-server` serves **both** the OpenAI-compatible API (`/v1/...`, `/health`, `/props`, `/metrics`) and a built-in web UI (`/`) on the **same port** — there is no separate UI process or port. A single Traefik router (`HostRegexp(`llama.{x:.+}`)` → port 8080) covers both; clients hitting `https://llama.spark-1822.local/` get the UI, hitting `/v1/...` gets the API. When `LLAMA_API_KEY` is set, the same bearer protects both surfaces (the UI prompts for the key once and stores it in localStorage).
 
 ### GPU sharing
 
@@ -224,10 +226,10 @@ make list                                  # show available envs/<name>.env vari
 make up ENV=gpt-oss-safeguard-120b-hf      # start that one
 ```
 
-Once healthy, the server is at `https://llama.spark-1822.local`. The bearer-token auth is enforced on `/v1/chat/completions`; `/v1/models` is open (catalog only).
+Once healthy, both the web UI and the OpenAI-compatible API are reachable on `https://llama.spark-1822.local` (same host, same port, different paths — see [Topology](#topology)). The bearer-token auth is enforced on `/v1/chat/completions`; `/v1/models` and the UI's root are open.
 
-- Web UI — open in browser (auth handled by the UI).
-- OpenAI-compatible API:
+- **Web UI** — `/` in a browser. The UI prompts for `LLAMA_API_KEY` on first load and stashes it in localStorage; browser-side fetches then carry the bearer header automatically.
+- **OpenAI-compatible API** — `/v1/models`, `/v1/chat/completions`, etc.:
   ```bash
   curl -k https://llama.spark-1822.local/v1/models | jq .
   curl -k -H "Authorization: Bearer $LLAMA_API_KEY" \
