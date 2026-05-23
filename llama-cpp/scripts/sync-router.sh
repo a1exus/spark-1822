@@ -42,15 +42,16 @@ list_ggufs() {
     # Fallback: find walk; derive repo from path.
     find "$HF_CACHE/hub" -name "*.gguf" 2>/dev/null \
         | while read -r fp; do
-            repo=$(echo "$fp" | sed -nE 's|.*/hub/models--([^/]+)/.*|\1|p' | sed 's|--|/|')
+            repo=$(echo "$fp" | sed -nE 's|.*/hub/models--([^/]+)/.*|\1|p' | sed 's|--|/|g')
             [[ -n "$repo" ]] || continue
             printf '%s\t%s\n' "$repo" "$fp"
         done
 }
 
-# Portable associative-array shim (bash 3.2 / macOS compatible).
-# Keys are GGUF basenames; values are repo-ids.
-# Usage: seen_set KEY VALUE / seen_get KEY / seen_has KEY
+# basename → repo-id, populated as we walk the cache. Collisions are warned.
+# Portable associative-array shim — bash 3.2 (macOS system bash) lacks
+# `declare -A`. The encoded variable name (`_seen_<mangled-basename>`)
+# uniquely identifies each GGUF for HF filenames (alphanumerics + `-` + `.`).
 _seen_encode() { printf '%s' "$1" | LC_ALL=C tr -cs 'A-Za-z0-9_' '_'; }
 seen_set() { local k; k=$(_seen_encode "$1"); eval "_seen_${k}=\$2"; }
 seen_get() { local k; k=$(_seen_encode "$1"); eval "printf '%s' \"\${_seen_${k}:-}\""; }
@@ -73,8 +74,10 @@ while IFS=$'\t' read -r repo host_path; do
     fi
     seen_set "$base" "$repo"
 
+    # Strip GGUF extension, split-part suffix, then dash- or dot-separated quant.
+    # HF filenames use both conventions (e.g. `model-Q4_K_M.gguf` vs `model.Q4_K_M.gguf`).
     section=$(echo "$base" \
-        | sed -E 's/\.gguf$//; s/-0*[0-9]+-of-[0-9]+$//; s/-MXFP4.*//; s/-Q[0-9].*//; s/-IQ[0-9].*//; s/-F1[6]$//; s/-F32$//' \
+        | sed -E 's/\.gguf$//; s/-0*[0-9]+-of-[0-9]+$//; s/-MXFP4.*//; s/\.[QqFf][0-9].*//; s/-Q[0-9].*//; s/-IQ[0-9].*//; s/-F1[6]$//; s/-F32$//' \
         | tr '[:upper:]' '[:lower:]')
 
     quant=$(echo "$base" | grep -oE '(MXFP4|Q[0-9][_KMS0-9]*|IQ[0-9][_KMS0-9]*|F16|F32)' | head -1 || true)
