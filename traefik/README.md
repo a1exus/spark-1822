@@ -27,7 +27,7 @@ traefik/
 ```bash
 cp .env.example .env
 # Edit .env:
-#   TRAEFIK_TAG — Traefik image tag (default: v2.11 LTS)
+#   TRAEFIK_TAG — Traefik image tag (default: `v2` floating; pin to e.g. v2.11.X for prod)
 ```
 
 ## TLS — internal CA + wildcard

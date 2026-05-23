@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 6 * * 1'  # Mondays 06:00 UTC — catches new CVEs against pinned images
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC — re-scans whatever the .env.example tags resolve to today
   workflow_dispatch:
 
 permissions:

@@ -20,7 +20,7 @@ netdata/
 ```bash
 cp .env.example .env
 # Edit .env:
-#   NETDATA_TAG       — pinned image tag
+#   NETDATA_TAG       — image tag (`latest` by default; pin to a release for prod)
 #   NETDATA_HOSTNAME  — what netdata reports as host name
 #   DOCKER_GID        — host's docker-group GID (so netdata can read docker.sock)
 #                       getent group docker | cut -d: -f3

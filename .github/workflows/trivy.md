@@ -6,15 +6,15 @@ Workflow: [`trivy.yml`](trivy.yml). Scans every container image we deploy plus t
 
 - `push` to `main`
 - `pull_request` targeting `main`
-- Weekly schedule — Mondays 06:00 UTC. Catches new CVEs against already-pinned images.
+- Weekly schedule — Mondays 06:00 UTC. Re-scans the image tags as committed in each stack's `.env.example` (floating by default, so this also picks up upstream rebuilds).
 - Manual `workflow_dispatch`
 
 ## Jobs
 
 | Job | What it scans |
 |---|---|
-| `extract-tags` | Reads pinned image tags from each stack's `.env.example` and exposes them as job outputs. |
-| `image-scan` (matrix) | CVE scan of each pinned image: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `netdata/netdata`, `ghcr.io/ggml-org/llama.cpp`, `vllm/vllm-openai`, `traefik`, `cloudflare/cloudflared`, `tailscale/tailscale`. Severity HIGH+CRITICAL, fixed-only. |
+| `extract-tags` | Reads the image tag from each stack's `.env.example` (`*_TAG=` line) and exposes the values as job outputs. Tags are floating by repo convention (`latest`, `v2`, `server-cuda`, etc.); operators pin in their host-local `.env`. |
+| `image-scan` (matrix) | CVE scan of each image at the committed `.env.example` tag: `ollama/ollama`, `ghcr.io/open-webui/open-webui`, `netdata/netdata`, `ghcr.io/ggml-org/llama.cpp`, `vllm/vllm-openai`, `traefik`, `cloudflare/cloudflared`, `tailscale/tailscale`. Severity HIGH+CRITICAL, fixed-only. |
 | `config-scan` | Trivy IaC config check across the whole repo (compose misconfig, etc.). |
 | `secret-scan` | Filesystem scan for accidentally-committed secrets. |
 
@@ -23,7 +23,7 @@ All findings are uploaded as SARIF to the repo's [Security tab](https://github.c
 ## Gating
 
 - **Push / PR** — fails on any CRITICAL CVE or any leaked secret. Blocks merges on real regressions.
-- **Scheduled** — never fails. Upstream-only CVEs against pinned images shouldn't break the green badge between version bumps; new findings still surface in the Security tab so we know to bump tags.
+- **Scheduled** — never fails. Upstream CVEs against today's tag resolution shouldn't break the green badge; new findings still surface in the Security tab so we (and any operator pinning to a specific version in their `.env`) know when to upgrade.
 
 ## Hardening
 

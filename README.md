@@ -150,11 +150,11 @@ Host-local files outside git stay put across pulls — each stack's `.env` (secr
 
 ## Conventions
 
-- **Image tags pinned** to specific versions in `.env` files (single source of truth, validated by CI) — never `:latest`. Pin format depends on what the registry publishes: a plain immutable tag (`v2.11`, `v0.20.2`) when available; the digest of a multi-arch manifest list when a project only publishes the arm64 build under a floating tag (e.g. `ggml-org/llama.cpp`'s `server-cuda`, where the per-build tags are amd64-only).
+- **Image tags float by default, pin in production.** The committed `.env.example` files use floating tags (`latest`, or a stable major-line like `v2` for Traefik, or the multi-arch floating tag `server-cuda` for `ggml-org/llama.cpp`) so a fresh `cp .env.example .env` bootstraps to a working state without anyone having to look up the current release. **For production deployments, override in your host-local `.env` with a specific, reproducible pin** — an immutable tag (`v2.11.X`, `v0.20.2`) when the registry publishes one, or a content-digest pin (`server-cuda@sha256:…`) when only floating tags exist. Each per-service `.env.example` shows the pin format inline.
 - **Inference config split** by scope. `<stack>/.env` carries host-wide values (image pin, HF cache path, HF token, default knobs); `<stack>/envs/<name>.env` carries just the model selection plus per-variant overrides. `make up ENV=<name>` chains both via `docker compose --env-file .env --env-file envs/<name>.env up -d`. Both files are gitignored — the templates live next to them as `.env.example`.
 - **Loopback ports on inference stacks.** `vllm/` and `llama-cpp/` additionally bind their API to `127.0.0.1` on the host for direct curl / benchmarking — LAN traffic still flows through the proxy.
 - **Permissions.** `/opt/<stack>/` is `root:root`. The `.env` files are `root:docker 640` so the `docker`-group user reads them and runs compose without sudo. Editing configs requires `sudo`.
-- **Supply chain.** Every third-party Docker image is pinned by tag (or digest where applicable) in `.env.example`. Every GitHub Action is pinned by commit SHA. Trivy scans push / PR / weekly cron; Dependabot keeps the SHA pins fresh with a weekly grouped PR.
+- **Supply chain.** Every third-party Docker image is referenced by tag in `.env.example` (floating for first-bootstrap convenience; pin in your host-local `.env` for production). Every GitHub Action is pinned by commit SHA. Trivy scans push / PR / weekly cron; Dependabot keeps the SHA pins fresh with a weekly grouped PR.
 
 ## Repo housekeeping
 
