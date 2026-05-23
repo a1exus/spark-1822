@@ -280,3 +280,26 @@ Pre-merge (on a feature branch, then on the real host):
 8. Update `llama-cpp/envs/README.md` (one-line redirect).
 9. Update repo-root `README.md` service description.
 10. Manual run through the verification plan on the real host (including auth-rejected request).
+
+## Post-deployment findings (PR #3 + PR #4 + PR #5)
+
+The plan executed cleanly through code; deploying to `spark-1822` surfaced three issues, fixed in follow-up PRs:
+
+1. **The router auto-derives an HF-style ID from each symlink target path.** Our `alias =` line in `config.ini` produced the same ID and crashed startup with `failed to initialize router models: alias 'X' for model 'Y' conflicts with existing model name`. The hybrid model-ID design (OQ1) is unnecessary — the router already gives you `<short-alias>` (from the config section name), `<filename>` (from the auto-scan), and `<org>/<repo>:<quant>` (from the path-parse) for every entry. Fix: `sync-router.sh` no longer emits `alias =`; `regen-config-ini.py` reads 2-field stdin instead of 3.
+2. **Image-digest fragility.** The first floating-tag digest I bumped to (`e8d36f4d…`) ships libraries in `/app/` but doesn't add `/app/` to the binary's RPATH/RUNPATH, so the container exits immediately on start with `error while loading shared libraries: libllama-common.so.0`. Reverted to `fef7ac8d…`. Added a `--help` sanity-check step to the README's "Pinning the image" section to catch this on future bumps.
+3. **BF-quant section names.** The section-name regex stripped `-F16`/`-F32` but not `-BF16`/`-BF32`, so `qwen3.6-27b-bf16` (etc.) had a `bf16` suffix. Fixed to `s/-BF[0-9]+$//; s/-F[0-9]+$//`.
+
+Three quirks of router mode worth knowing (documented in `llama-cpp/README.md` → "Router quirks worth knowing"):
+
+- `/v1/models` is unauthenticated; only `/v1/chat/completions` enforces the bearer.
+- Each part of a multi-part split GGUF appears as its own `/v1/models` entry (only the first part is loadable).
+- Loading the same physical GGUF under two IDs (short alias and HF-style) counts twice toward `MODELS_MAX`.
+- `gpt-oss-*` models need harmony template; default ChatML produces a 500.
+
+Confirmed on-host:
+
+- Container healthy in router mode (`make up`, no `ENV=`).
+- `/v1/models` lists every cached GGUF under three IDs each.
+- Auth enforced on `/v1/chat/completions` (401 without bearer; 200 with).
+- On-demand load works — DeepSeek-R1-8B cold-loaded in ~35s, ~15.7 tok/s thereafter.
+- Traefik route at `https://llama.spark-1822.local/v1/...` reaches the container with auth preserved.
