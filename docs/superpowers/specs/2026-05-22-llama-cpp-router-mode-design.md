@@ -296,6 +296,8 @@ Three quirks of router mode worth knowing (documented in `llama-cpp/README.md` �
 - Loading the same physical GGUF under two IDs (short alias and HF-style) counts twice toward `MODELS_MAX`.
 - `gpt-oss-*` models need harmony template; default ChatML produces a 500.
 
+**GPU exclusivity reclassified.** The original spec inherited a "llama-cpp ⊕ Ollama" exclusivity assumption from the pre-router README. In practice, **both router mode and Ollama are lazy** — neither allocates VRAM until a model is actually loaded — so they coexist on the same GB10 as long as the simultaneous resident set fits. The actually-exclusive engine in this stack is **vLLM**, which reserves ~90% of VRAM at startup via `--gpu-memory-utilization 0.9` regardless of request load. Classic single-model mode (`-ngl 999` + a model pinned at boot) also remains exclusive. Documented in `llama-cpp/README.md` → "GPU sharing".
+
 Confirmed on-host:
 
 - Container healthy in router mode (`make up`, no `ENV=`).

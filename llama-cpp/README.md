@@ -16,16 +16,29 @@ Set up as the workaround for Ollama not being able to pull `gpt-oss-safeguard:12
 
 `llama-cpp` runs as a single container on the shared `traefik` Docker network (defined by the `traefik/` stack). Traefik reaches the container over that network for external traffic. The container also publishes its API on the host's loopback interface at `127.0.0.1:8080` for direct host-side curl/benchmarks — not reachable from the LAN. Set `HOST_PORT=<n>` in the variant file if 8080 is taken.
 
-### GPU exclusivity
+### GPU sharing
 
-`-ngl 999` puts every model layer on GPU and keeps them resident (~65 GiB VRAM for the default model). The GB10 has 124 GiB total, but **Ollama lazily loads its own models on demand into the same VRAM**, so you can't have both engines active at once without one OOMing the other. Hence `restart: "no"` here — this stack is manual-start. To use llama.cpp:
+The GB10 has 124 GiB of VRAM. Three engines on this host want it; how they treat it differs:
+
+| Engine | VRAM posture | Coexistence |
+|---|---|---|
+| **llama-cpp router mode** (default) | **lazy** — no model resident at start; loads on first request to that model ID, LRU evicts at `MODELS_MAX` | Coexists with anything else that's also lazy |
+| **Ollama** | **lazy** — loads on chat request, unloads after `keep_alive` (5 min by default) | Coexists with router mode |
+| **llama-cpp classic single-model mode** | **eager** — `-ngl 999` parks every layer at startup (~65 GiB for the default 120b) | Requires the rest of the GPU |
+| **vLLM** | **eager** — `--gpu-memory-utilization 0.9` reserves ~90% of VRAM at start whether or not it's serving | Exclusive; can't coexist with anything else loading models |
+
+Coexistence rule of thumb for two lazy engines: keep `MODELS_MAX × worst_case_resident_VRAM` + the other engine's typical resident set below the 124 GiB total. With the default `MODELS_MAX=2` and the 120b in inventory, that's tight — Ollama may fail to load if llama-cpp already has two big models resident.
+
+Hence `restart: "no"` on llama-cpp's compose entry — manual start so you decide when it joins the pool. To force pure exclusivity (the safest mode if you're loading the 120b on both engines):
 
 ```bash
 docker compose -f /opt/open-webui/docker-compose.yml stop ollama
-cd /opt/llama-cpp && make up ENV=<name>
+cd /opt/llama-cpp && make up
 ```
 
-To go back to ollama:
+Ollama has `restart: unless-stopped`, so a Docker daemon restart will bring it back. Use `docker compose ... stop` again or change its restart policy if you want hard exclusivity.
+
+To swap back to Ollama-only:
 
 ```bash
 docker compose -f /opt/llama-cpp/docker-compose.yml down
