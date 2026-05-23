@@ -34,6 +34,10 @@ services:
       # Reuse files already downloaded by the HuggingFace CLI on the host.
       # Layout: hub/models--<org>--<repo>/snapshots/<rev>/<file>
       - ${HF_CACHE_HOST:-/opt/hf/.cache/huggingface}:/root/.cache/huggingface:ro
+      # Symlink farm populated by `make hf-sync` on the host. Symlinks target
+      # container-side absolute paths (under /root/.cache/huggingface) so they
+      # resolve in-container; viewed on the host they'll appear broken.
+      - ${SYMLINK_FARM_HOST:-/opt/hf/.cache/llama-cpp-models}:/models:ro
       # Launcher script picks MODEL_PATH, MODEL_OLLAMA, or MODEL_URL.
       - ./entrypoint.sh:/usr/local/bin/llama-cpp-entrypoint:ro
     environment:
@@ -44,6 +48,8 @@ services:
       MODEL_ALIAS: ${MODEL_ALIAS:-llama-cpp}
       CTX_SIZE: ${CTX_SIZE:-8192}
       N_GPU_LAYERS: ${N_GPU_LAYERS:-999}
+      MODELS_MAX: ${MODELS_MAX:-2}
+      LLAMA_API_KEY: ${LLAMA_API_KEY:-}
     entrypoint: ["/usr/local/bin/llama-cpp-entrypoint"]
     command: []
     deploy:

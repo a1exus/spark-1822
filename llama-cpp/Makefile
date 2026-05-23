@@ -10,18 +10,20 @@ SERVICE := llama-cpp
 COMPOSE := docker compose -f docker-compose.yml
 HF_CACHE ?= /opt/hf/.cache/huggingface
 LLAMACPP_CACHE_VOL ?= llama-cpp-cache
-.PHONY: help list up hf-cache hf-sync
+.PHONY: help list up hf-cache hf-sync models
 
 help:  ## Show this help.
 	@awk 'BEGIN{FS=":.*##"} /^[a-zA-Z_-]+:.*##/{printf "  \033[36m%-12s\033[0m %s\n",$$1,$$2}' $(MAKEFILE_LIST)
 	@echo
 	@echo "Usage:"
 	@echo "  make list                       — show available env variants"
-	@echo "  make up ENV=<name>              — start $(SERVICE) with that env"
+	@echo "  make up                         — start in router mode (all GGUFs available)"
+	@echo "  make up ENV=<name>              — start in classic single-model mode"
 	@echo
 	@echo "GGUF-cache maintenance (llama-cpp-cache vol + HF cache):"
 	@echo "  make hf-cache                   — list GGUF files in this host's caches"
-	@echo "  make hf-sync                    — reconcile envs against the caches (create / restore / orphan to .bak)"
+	@echo "  make hf-sync                    — reconcile envs + router artifacts against the caches"
+	@echo "  make models                     — show /v1/models from a running router-mode container"
 	@echo
 	@echo "For management, raw docker compose works once .env exists"
 	@echo "(make up creates it on first run from .env.example):"
@@ -32,13 +34,8 @@ help:  ## Show this help.
 list:  ## List available env variants under envs/.
 	@ls envs/*.env 2>/dev/null | sed 's|envs/||; s|\.env$$||' | sort
 
-up:  ## Start with the given variant. Usage: make up ENV=<name>
-	@if [[ -z "$(ENV)" ]]; then \
-	    echo "usage: make up ENV=<name>" >&2; \
-	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
-	    exit 64; \
-	fi
-	@if [[ ! -f "envs/$(ENV).env" ]]; then \
+up:  ## Start. With ENV=<name>: classic single-model mode. Without: router mode (all GGUFs available).
+	@if [[ -n "$(ENV)" && ! -f "envs/$(ENV).env" ]]; then \
 	    echo "variant not found: envs/$(ENV).env" >&2; \
 	    echo "available:" >&2; $(MAKE) -s list | sed 's/^/  /' >&2; \
 	    exit 1; \
@@ -48,25 +45,49 @@ up:  ## Start with the given variant. Usage: make up ENV=<name>
 	    echo "  so raw \`docker compose ps/logs/down\` work without --env-file)"; \
 	    cp .env.example .env; \
 	fi
-	$(COMPOSE) --env-file .env --env-file "envs/$(ENV).env" up -d
+	@if [[ -z "$(ENV)" ]]; then \
+	    echo "→ router mode (no ENV): all GGUFs in /models will be served on demand"; \
+	    $(COMPOSE) --env-file .env up -d; \
+	else \
+	    echo "→ classic mode: loading $(ENV) at startup"; \
+	    $(COMPOSE) --env-file .env --env-file "envs/$(ENV).env" up -d; \
+	fi
 
-hf-cache:  ## List cached models — GGUFs in llama-cpp-cache vol + every HF repo in HF cache (annotated by format).
+hf-cache:  ## List cached models — GGUFs in llama-cpp-cache vol + every HF repo in HF cache (annotated by format + router visibility).
 	@echo "# in docker volume $(LLAMACPP_CACHE_VOL) — usable by llama-cpp:"
 	@docker run --rm -v $(LLAMACPP_CACHE_VOL):/d alpine sh -c 'ls /d/*.gguf 2>/dev/null' \
 	    | sed 's|.*/||; s|^|  |' || true
 	@echo
 	@echo "# in $(HF_CACHE) — populated by \`hf download\` / vllm; usable by llama-cpp only when GGUF is present:"
-	@shopt -s nullglob; \
+	@farm="$${SYMLINK_FARM_HOST:-/opt/hf/.cache/llama-cpp-models}"; \
+	shopt -s nullglob; \
 	for d in $(HF_CACHE)/hub/models--*/; do \
 	    repo=$$(basename "$$d" | sed 's|^models--||; s|--|/|'); \
 	    gg=$$(find "$$d" -name "*.gguf" 2>/dev/null | wc -l); \
 	    st=$$(find "$$d" -name "*.safetensors" 2>/dev/null | wc -l); \
+	    router_flag=""; \
+	    if [[ $$gg -gt 0 && -d "$$farm" ]]; then \
+	        for fp in $$(find "$$d" -name "*.gguf" 2>/dev/null); do \
+	            if [[ -L "$$farm/$$(basename "$$fp")" ]]; then router_flag=" [router]"; break; fi; \
+	        done; \
+	    fi; \
 	    if [[ $$gg -gt 0 ]]; then \
-	        printf "  %-60s [%d GGUF — llama-cpp can load]\n" "$$repo" "$$gg"; \
+	        printf "  %-60s [%d GGUF — llama-cpp can load]%s\n" "$$repo" "$$gg" "$$router_flag"; \
 	    else \
 	        printf "  %-60s [%d safetensors — vllm only]\n" "$$repo" "$$st"; \
 	    fi; \
 	done
+
+models:  ## Show /v1/models from the running container (router mode). Reads LLAMA_API_KEY from .env.
+	@key=$$(grep -E '^LLAMA_API_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2-); \
+	if [[ -n "$$key" ]]; then \
+	    auth_args=( -H "Authorization: Bearer $$key" ); \
+	else \
+	    auth_args=(); \
+	fi; \
+	curl -fsS "$${auth_args[@]}" http://127.0.0.1:8080/v1/models 2>/dev/null \
+	    | jq . \
+	    || { echo "could not reach http://127.0.0.1:8080/v1/models — is the container running and the key correct?" >&2; exit 1; }
 
 hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, restore from .bak, orphan to .bak.
 	@gguf_vol=$$(docker run --rm -v $(LLAMACPP_CACHE_VOL):/d alpine sh -c 'ls /d/*.gguf 2>/dev/null' 2>/dev/null | sed 's|.*/||' | sort -u || true); \
@@ -174,3 +195,10 @@ hf-sync:  ## Reconcile envs against this host's GGUF inventory: create new, rest
 	    echo "      \`hf download bartowski/<model>-GGUF\`) or convert locally with"; \
 	    echo "      llama.cpp's convert_hf_to_gguf.py. \`make hf-cache\` shows which."; \
 	fi
+	@echo
+	@echo "# router artifacts — symlink farm + config.ini"
+	@HF_CACHE="$(HF_CACHE)" \
+	    SYMLINK_FARM="$${SYMLINK_FARM_HOST:-/opt/hf/.cache/llama-cpp-models}" \
+	    CTX_DEFAULT="$${CTX_SIZE:-8192}" \
+	    NGL_DEFAULT="$${N_GPU_LAYERS:-999}" \
+	    ./scripts/sync-router.sh

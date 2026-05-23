@@ -1,3 +1,7 @@
+> **Note:** `envs/` is for **classic single-model mode** only. Router mode (the default) discovers models from the HF cache via the symlink farm at `${SYMLINK_FARM_HOST}/`. See [../README.md → Router mode](../README.md#router-mode-default). The contents below are kept working during the router-mode trial; they'll be removed (moved to `.bak`) once router mode is verified.
+
+---
+
 # llama-cpp env variants
 
 One **self-contained** file per model. `make up ENV=<name>` invokes `docker compose --env-file envs/<name>.env up -d` so the chosen variant's values reach the running container. Raw `docker compose ps / logs / down` afterwards reads the parent dir's `.env` (auto-bootstrapped by `make up` from `.env.example`) — placeholder values that satisfy compose's required-var checks but never reach a real container.
