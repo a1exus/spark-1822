@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## [Unreleased]
 
+### Added
+
+- `llama-cpp/` MTP (Multi-Token Prediction) speculative decoding for models that ship with a bundled MTP draft head (e.g. `unsloth/Qwen3.6-35B-A3B-MTP-GGUF`). Enabled per-model via three keys in `${SYMLINK_FARM_HOST}/config.ini`: `spec-type = draft-mtp`, `spec-draft-n-max = 2`, `parallel = 1`. With MTP active on the 35B-A3B preset, the worker accepts the bundled draft head at ~1.000 acceptance rate (`draft-mtp: #acc tokens = N` in the logs) for compatible prompts. Requires a llama.cpp `server-cuda` digest from build ≥ b9200 — MTP support landed upstream in PR #22673 (commit `2555826`, 2026-05-16). The previously-pinned digest in `llama-cpp/.env.example` (`fef7ac8d…`, build 9144) **predates** MTP and fails the load with `missing tensor 'blk.<last>.ssm_conv1d.weight'`; bump the host-local `.env` to a current `server-cuda` digest (re-resolve per the README's "Pinning the image" snippet). MTP flags only attach to workers spawned from the matching `config.ini` section — auto-discovered HF-style aliases (`unsloth/…:BF16`) don't pick them up.
+
+### Changed
+
+- `llama-cpp/README.md`: `MODELS_MAX` guidance rewritten. The previous "default `MODELS_MAX=2`, sized for the 120b at ~65 GiB" only worked when the catalogue was one big model plus small-quant siblings. The current cache holds multiple BF16 Qwen3.6/35B-A3B GGUFs in the 55–70 GiB range — two concurrent workers OOM the 124 GiB GB10. New guidance: keep `MODELS_MAX=1` on BF16-heavy inventories; raise only after the big GGUFs leave the symlink farm. Trade-off documented: with `MODELS_MAX=1`, switching models pays a full cold-load (~60–90s for 66 GiB BF16) each flip, so hand-picking the model ID matters. The "Router quirks" entry on duplicate IDs expanded with the new eviction-thrash failure mode and a "favor the short config-section alias" recommendation (also the only alias the MTP flags can attach to). New "Tuning per model" example shows the three MTP keys.
+
 ## [0.5.0] - 2026-05-23
 
 ### Added
